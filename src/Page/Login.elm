@@ -1,10 +1,11 @@
-module Page.Login exposing (Model, Msg(..), init, update, view,subscriptions)
+module Page.Login exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import Html as H exposing (..)
-import Html.Attributes as HA exposing (..)
-import Html.Events as HE exposing (..)
-import Session exposing (Session)
+import Html.Attributes
+import Html.Events
 import Route exposing (Route)
+import Session exposing (Session)
+
 
 type alias Model =
     { session : Session
@@ -49,18 +50,25 @@ update msg model =
             ( { model | againpassword = apwd }, Cmd.none )
 
         GotSession session ->
-                    ( { model | session = session }
-                    , Route.replaceUrl (Session.navKey session) Route.Home
-                    )
+            ( { model | session = session }
+            , Route.replaceUrl (Session.navKey session) Route.Home
+            )
+
 
 view : Model -> { title : String, content : Html Msg }
 view model =
-     { title = "Login Window"
-      , content =
-            H.div []
-                [ H.text "User Name Password input goes here...."
+    { title = "Login Window"
+    , content =
+        H.div []
+            [ H.text "User Name Password input goes here...."
+            , H.input
+                [ Html.Attributes.value model.userName
+                , Html.Events.onInput UserNameChanged
                 ]
-     }
+                []
+            ]
+    }
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =

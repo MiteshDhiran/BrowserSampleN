@@ -30,10 +30,8 @@ cred (Viewer val) =
 
 
 username : Viewer -> Username
-username (Viewer  val) =
+username (Viewer val) =
     Api.username val
-
-
 
 
 {-| Passwords must be at least this many characters long!
@@ -41,6 +39,8 @@ username (Viewer  val) =
 minPasswordChars : Int
 minPasswordChars =
     6
+
+
 
 -- SERIALIZATION
 
@@ -54,4 +54,3 @@ store : Viewer -> Cmd msg
 store (Viewer credVal) =
     Api.storeCredWith
         credVal
-

@@ -1,18 +1,21 @@
-port module Api exposing (..)
+port module Api exposing (Cred(..), application, credDecoder, decodeFromChange, decoderFromCred, onStoreChange, storageDecoder, storeCache, storeCredWith, username, viewerChanges)
+
 import Api.Endpoint as Endpoint exposing (Endpoint)
 import Browser
-import Username exposing (Username)
 import Browser.Navigation as Nav
 import Json.Decode as Decode exposing (Decoder, Value, decodeString, field, string)
 import Json.Decode.Pipeline as Pipeline exposing (optional, required)
 import Json.Encode as Encode
 import Url exposing (Url)
+import Username exposing (Username)
 
 
 type Cred
     = Cred Username String
 
+
 port onStoreChange : (Value -> msg) -> Sub msg
+
 
 viewerChanges : (Maybe viewer -> msg) -> Decoder (Cred -> viewer) -> Sub msg
 viewerChanges toMsg decoder =
@@ -27,9 +30,11 @@ decodeFromChange viewerDecoder val =
     Decode.decodeValue (storageDecoder viewerDecoder) val
         |> Result.toMaybe
 
+
 storageDecoder : Decoder (Cred -> viewer) -> Decoder viewer
 storageDecoder viewerDecoder =
     Decode.field "user" (decoderFromCred viewerDecoder)
+
 
 decoderFromCred : Decoder (Cred -> a) -> Decoder a
 decoderFromCred decoder =
@@ -37,9 +42,11 @@ decoderFromCred decoder =
         decoder
         credDecoder
 
+
 username : Cred -> Username
 username (Cred val _) =
     val
+
 
 {-| It's important that this is never exposed!
 
@@ -54,7 +61,8 @@ credDecoder =
         |> required "username" Username.decoder
         |> required "token" Decode.string
 
-storeCredWith : Cred ->  Cmd msg
+
+storeCredWith : Cred -> Cmd msg
 storeCredWith (Cred uname token) =
     let
         json =
@@ -69,7 +77,9 @@ storeCredWith (Cred uname token) =
     in
     storeCache (Just json)
 
+
 port storeCache : Maybe Value -> Cmd msg
+
 
 application :
     Decoder (Cred -> viewer)

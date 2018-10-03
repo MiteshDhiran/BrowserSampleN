@@ -1,9 +1,9 @@
-module Main exposing (..)
+module Main exposing (Styles(..), Variation(..), main, navigation, sansSerif, stylesheet, view, viewGridLayout, viewNamedGridLayout, viewRowLayouts, viewTextLayout)
 
 import Browser
-import MyColor
 import Element exposing (..)
 import Element.Attributes exposing (..)
+import MyColor
 import Style exposing (..)
 import Style.Border as Border
 import Style.Color as Color

@@ -1,51 +1,57 @@
-module MyColor
-    exposing
-        ( Color
-          -- , Gradient
-        , black
-        , blue
-        , brown
-        , charcoal
-          -- , complement
-        , darkBlue
-        , darkBrown
-        , darkCharcoal
-        , darkGray
-        , darkGreen
-        , darkGrey
-        , darkOrange
-        , darkPurple
-        , darkRed
-        , darkYellow
-        , gray
-          -- , grayscale
-        , green
-        , grey
-          -- , greyscale
-          -- , hsl
-          -- , hsla
-        , lightBlue
-        , lightBrown
-        , lightCharcoal
-        , lightGray
-        , lightGreen
-        , lightGrey
-        , lightOrange
-        , lightPurple
-        , lightRed
-        , lightYellow
-          -- , linear
-        , orange
-        , purple
-          -- , radial
-        , red
-        , rgb
-        , rgba
-          -- , toHsl
-          -- , toRgb
-        , white
-        , yellow
-        )
+module MyColor exposing
+    (  Color
+       -- , Gradient
+
+    , black
+    , blue
+    , brown
+    ,  charcoal
+       -- , complement
+
+    , darkBlue
+    , darkBrown
+    , darkCharcoal
+    , darkGray
+    , darkGreen
+    , darkGrey
+    , darkOrange
+    , darkPurple
+    , darkRed
+    , darkYellow
+    ,  gray
+       -- , grayscale
+
+    , green
+    ,  grey
+       -- , greyscale
+       -- , hsl
+       -- , hsla
+
+    , lightBlue
+    , lightBrown
+    , lightCharcoal
+    , lightGray
+    , lightGreen
+    , lightGrey
+    , lightOrange
+    , lightPurple
+    , lightRed
+    ,  lightYellow
+       -- , linear
+
+    , orange
+    ,  purple
+       -- , radial
+
+    , red
+    , rgb
+    ,  rgba
+       -- , toHsl
+       -- , toRgb
+
+    , white
+    , yellow
+    )
 
 {-| -}
 

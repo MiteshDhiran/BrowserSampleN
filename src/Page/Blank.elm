@@ -1,10 +1,9 @@
-module Page.Blank exposing (..)
+module Page.Blank exposing (view)
 
 import Html
 
 
 view =
-    {
-         title = "Blank Page"
-       , content = Html.div [] [Html.text "BLANK PAGE"]
+    { title = "Blank Page"
+    , content = Html.div [] [ Html.text "BLANK PAGE" ]
     }

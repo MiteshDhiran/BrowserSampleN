@@ -1,8 +1,8 @@
-module Api.Endpoint exposing (..)
+module Api.Endpoint exposing (Endpoint(..), request, unwrap)
 
-import Url.Builder exposing (QueryParameter)
 import Html
 import Http
+import Url.Builder exposing (QueryParameter)
 
 
 {-| Get a URL to the Conduit API.
@@ -12,6 +12,7 @@ This is not publicly exposed, because we want to make sure the only way to get o
 -}
 type Endpoint
     = Endpoint String
+
 
 {-| Http.request, except it takes an Endpoint instead of a Url.
 -}
@@ -35,6 +36,7 @@ request config =
         , url = unwrap config.url
         , withCredentials = config.withCredentials
         }
+
 
 unwrap : Endpoint -> String
 unwrap (Endpoint str) =

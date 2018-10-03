@@ -1,58 +1,72 @@
-module Page.Home exposing (..)
+module Page.Home exposing (Model, Msg(..), init, subscriptions, update, view)
 
-import Session exposing (..)
+import Element exposing (..)
+import Element.Attributes exposing (..)
+import Element.Events
+import Element.Input
 import Html as H exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
-import Style exposing(..)
+import Session exposing (..)
+import Style exposing (..)
 import Style.Color as StyleColor exposing (..)
 import Style.Font as Font
-import Element exposing (..)
-import Element.Attributes exposing (..)
-import Element.Input
-import Element.Events
+
 
 type alias Model =
-    {
-        session : Session
-      , content : String
+    { session : Session
+    , content : String
     }
+
 
 type Msg
     = None
     | GoToLogin
     | GotSession Session
 
+
 init : Session -> ( Model, Cmd Msg )
 init session =
-    (
-        {   session = session
-          , content = case session of
-                        LoggedIn k viewer -> "viewer"
-                        Guest k -> "Guest User"
-        }
-      , Cmd.none
+    ( { session = session
+      , content =
+            case session of
+                LoggedIn k viewer ->
+                    "viewer"
+
+                Guest k ->
+                    "Guest User"
+      }
+    , Cmd.none
     )
+
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        None -> (model, Cmd.none)
-        GoToLogin -> (model, Cmd.none)
+        None ->
+            ( model, Cmd.none )
+
+        GoToLogin ->
+            ( model, Cmd.none )
+
         GotSession session ->
-                    ( { model | session = session }, Cmd.none )
+            ( { model | session = session }, Cmd.none )
+
 
 view : Model -> { title : String, content : Html Msg }
 view model =
-        {
-             title = "Home Page"
-           , content = H.div [] [
-                                      H.text "Home content goes here"
-                                    , H.a [ Html.Events.onClick GoToLogin
-                                           ,Html.Attributes.href "#login"]
-                                           [H.text "Go To Login"]
-                                 ]
-        }
+    { title = "Home Page"
+    , content =
+        H.div []
+            [ H.text "Home content goes here"
+            , H.a
+                [ Html.Events.onClick GoToLogin
+                , Html.Attributes.href "#login"
+                ]
+                [ H.text "Go To Login" ]
+            ]
+    }
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =

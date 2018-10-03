@@ -1,17 +1,17 @@
-module Session exposing (..)
+module Session exposing (Session(..), changes, fromViewer, navKey)
+
 import Api exposing (..)
-import Viewer exposing (..)
 import Browser.Navigation as Nav
 import Json.Decode as Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (custom, required)
 import Json.Encode as Encode exposing (Value)
-
-
+import Viewer exposing (..)
 
 
 type Session
     = LoggedIn Nav.Key Viewer
     | Guest Nav.Key
+
 
 navKey : Session -> Nav.Key
 navKey session =
@@ -22,9 +22,11 @@ navKey session =
         Guest key ->
             key
 
+
 changes : (Session -> msg) -> Nav.Key -> Sub msg
 changes toMsg key =
     Api.viewerChanges (\maybeViewer -> toMsg (fromViewer key maybeViewer)) Viewer.decoder
+
 
 fromViewer : Nav.Key -> Maybe Viewer -> Session
 fromViewer key maybeViewer =
