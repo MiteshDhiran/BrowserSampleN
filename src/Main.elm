@@ -92,11 +92,17 @@ update msg model =
                 model
 
         ( GotLoginMsg subMsg, Login login ) ->
-            Debug.log ("GotLoginMsg" ++ Debug.toString subMsg ++ Debug.toString login)
-                Login.update
-                subMsg
-                login
-                |> updateWith Login GotLoginMsg model
+            case subMsg of
+                Login.Redirect ->
+                    Debug.log ("Redirect Intercepted in main" ++ Debug.toString subMsg ++ Debug.toString login)
+                        ( model, Cmd.none )
+
+                _ ->
+                    Debug.log ("GotLoginMsg" ++ Debug.toString subMsg ++ Debug.toString login)
+                        Login.update
+                        subMsg
+                        login
+                        |> updateWith Login GotLoginMsg model
 
         ( GotHomeMsg subMsg, Home home ) ->
             Debug.log ("GotHomeMsg" ++ Debug.toString subMsg ++ Debug.toString home)
@@ -192,7 +198,7 @@ subscriptions model =
             Sub.map GotHomeMsg (Home.subscriptions home)
 
         Login login ->
-            Debug.log "Subscription - login called"
+            Debug.log "Main module Subscription calling GotLoginMsg"
                 Sub.map
                 GotLoginMsg
                 (Login.subscriptions login)

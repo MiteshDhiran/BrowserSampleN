@@ -1,4 +1,4 @@
-module Username exposing (Username, decoder, encode, toHtml, toString, urlParser)
+module Username exposing (Username, createUserName, decoder, encode, toHtml, toString, urlParser)
 
 import Html exposing (Html)
 import Json.Decode as Decode exposing (Decoder)
@@ -12,6 +12,15 @@ import Url.Parser
 
 type Username
     = Username String
+
+
+
+-- create username from string
+
+
+createUserName : String -> Username
+createUserName userName =
+    Username userName
 
 
 

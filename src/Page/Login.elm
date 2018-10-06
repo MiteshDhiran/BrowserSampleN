@@ -1,10 +1,17 @@
 module Page.Login exposing (Model, Msg(..), init, subscriptions, update, view)
 
+import Api exposing (..)
+import Browser.Navigation as Nav
 import Html as H exposing (..)
 import Html.Attributes
 import Html.Events
 import Route exposing (Route)
-import Session exposing (Session)
+import Session exposing (..)
+import Tuple
+
+
+
+--import Viewer exposing (Viewer, cred, decoder, minPasswordChars, store, username)
 
 
 type alias Model =
@@ -21,7 +28,11 @@ type alias Model =
 
 init : Session -> ( Model, Cmd msg )
 init session =
-    ( { session = session, userName = "", password = "", againpassword = "" }
+    let
+        userName =
+            Session.getUserName session
+    in
+    ( { session = session, userName = userName, password = "", againpassword = "" }
     , Cmd.none
     )
 
@@ -32,13 +43,15 @@ type Msg
     | PasswordChanged String
     | AgainPasswordChanged String
     | GotSession Session
+    | NavigateToHomePage
+    | Redirect
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         SignInClicked ->
-            ( model, Cmd.none )
+            ( { model | session = Session.createNewSession (Session.navKey model.session) model.userName "" }, Cmd.none )
 
         UserNameChanged userName ->
             ( { model | userName = userName }, Cmd.none )
@@ -51,8 +64,23 @@ update msg model =
 
         GotSession session ->
             ( { model | session = session }
-            , Route.replaceUrl (Session.navKey session) Route.Home
+              --, Route.replaceUrl (Session.navKey session) Route.Home
+            , Cmd.none
             )
+
+        --session = LoggedIn (Session.navKey model.session) createViewerFromUserNameToken model.userName ""
+        NavigateToHomePage ->
+            ( { model | session = Session.createNewSession (Session.navKey model.session) model.userName "" }
+            , Cmd.batch
+                [ Nav.back
+                    (navKey model.session)
+                    1
+                ]
+            )
+
+        Redirect ->
+            Debug.log "Redirect command will never  be handled here as its being handled in parent"
+                ( model, Cmd.none )
 
 
 view : Model -> { title : String, content : Html Msg }
@@ -66,10 +94,22 @@ view model =
                 , Html.Events.onInput UserNameChanged
                 ]
                 []
+            , H.button [ Html.Events.onClick NavigateToHomePage ]
+                [ H.text "Back to Home Page" ]
+            , H.button [ Html.Events.onClick SignInClicked ]
+                [ H.text "Sign In" ]
+            , H.button [ Html.Events.onClick Redirect ]
+                [ H.text "Redirect" ]
             ]
     }
 
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Session.changes GotSession (Session.navKey model.session)
+    Debug.log
+        ("Login module subscriptions"
+            ++ Debug.toString model
+        )
+        Session.changes
+        GotSession
+        (Session.navKey model.session)

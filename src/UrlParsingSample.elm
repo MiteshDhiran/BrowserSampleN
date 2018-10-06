@@ -1,4 +1,4 @@
-module Main exposing (Docs, Model(..), Route(..), docsParser, main, routeParser)
+module Main exposing (Docs, Model(..), Route(..), docsParser, routeParser)
 
 import Browser
 import Browser.Navigation as Nav
@@ -74,13 +74,15 @@ type Model
     | UserPage
 
 
-main : Program () Model Msg
-main =
-    Browser.application
-        { init = init
-        , view = view
-        , update = update
-        , subscriptions = subscriptions
-        , onUrlChange = UrlChanged
-        , onUrlRequest = LinkClickedA
-        }
+
+{- main : Program () Model Msg
+   main =
+       Browser.application
+           { init = init
+           , view = view
+           , update = update
+           , subscriptions = subscriptions
+           , onUrlChange = UrlChanged
+           , onUrlRequest = LinkClickedA
+           }
+-}
