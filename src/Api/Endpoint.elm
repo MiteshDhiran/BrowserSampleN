@@ -1,4 +1,4 @@
-module Api.Endpoint exposing (Endpoint(..), request, unwrap)
+module Api.Endpoint exposing (Endpoint(..), login, request, unwrap)
 
 import Html
 import Http
@@ -41,3 +41,22 @@ request config =
 unwrap : Endpoint -> String
 unwrap (Endpoint str) =
     str
+
+
+url : List String -> List QueryParameter -> Endpoint
+url paths queryParams =
+    -- NOTE: Url.Builder takes care of percent-encoding special URL characters.
+    -- See https://package.elm-lang.org/packages/elm/url/latest/Url#percentEncode
+    Url.Builder.crossOrigin "https://conduit.productionready.io"
+        ("api" :: paths)
+        queryParams
+        |> Endpoint
+
+
+
+-- ENDPOINTS
+
+
+login : Endpoint
+login =
+    url [ "users", "login" ] []

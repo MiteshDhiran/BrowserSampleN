@@ -1,8 +1,9 @@
-port module Api exposing (Cred(..), application, credDecoder, decodeFromChange, decoderFromCred, onStoreChange, storageDecoder, storeCache, storeCredWith, username, viewerChanges)
+port module Api exposing (Cred(..), application, credDecoder, decodeErrors, decodeFromChange, decoderFromCred, login, onStoreChange, storageDecoder, storeCache, storeCredWith, username, viewerChanges)
 
 import Api.Endpoint as Endpoint exposing (Endpoint)
 import Browser
 import Browser.Navigation as Nav
+import Http
 import Json.Decode as Decode exposing (Decoder, Value, decodeString, field, string)
 import Json.Decode.Pipeline as Pipeline exposing (optional, required)
 import Json.Encode as Encode
@@ -79,6 +80,60 @@ storeCredWith (Cred uname token) =
 
 
 port storeCache : Maybe Value -> Cmd msg
+
+
+fromPair : ( String, List String ) -> List String
+fromPair ( field, errors ) =
+    List.map (\error -> field ++ " " ++ error) errors
+
+
+errorsDecoder : Decoder (List String)
+errorsDecoder =
+    Decode.keyValuePairs (Decode.list Decode.string)
+        |> Decode.map (List.concatMap fromPair)
+
+
+{-| Many API endpoints include an "errors" field in their BadStatus responses.
+-}
+decodeErrors : Http.Error -> List String
+decodeErrors error =
+    case error of
+        Http.BadStatus response ->
+            response.body
+                |> decodeString (field "errors" errorsDecoder)
+                |> Result.withDefault [ "Server error" ]
+
+        err ->
+            [ "Server error" ]
+
+
+login : Http.Body -> Decoder (Cred -> a) -> Http.Request a
+login body decoder =
+    post Endpoint.login Nothing body (Decode.field "user" (decoderFromCred decoder))
+
+
+credHeader : Cred -> Http.Header
+credHeader (Cred _ str) =
+    Http.header "authorization" ("Token " ++ str)
+
+
+post : Endpoint -> Maybe Cred -> Http.Body -> Decoder a -> Http.Request a
+post url maybeCred body decoder =
+    Endpoint.request
+        { method = "POST"
+        , url = url
+        , expect = Http.expectJson decoder
+        , headers =
+            case maybeCred of
+                Just cred ->
+                    [ credHeader cred ]
+
+                Nothing ->
+                    []
+        , body = body
+        , timeout = Nothing
+        , withCredentials = False
+        }
 
 
 application :

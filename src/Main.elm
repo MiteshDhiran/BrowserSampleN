@@ -93,10 +93,6 @@ update msg model =
 
         ( GotLoginMsg subMsg, Login login ) ->
             case subMsg of
-                Login.Redirect ->
-                    Debug.log ("Redirect Intercepted in main" ++ Debug.toString subMsg ++ Debug.toString login)
-                        ( model, Cmd.none )
-
                 _ ->
                     Debug.log ("GotLoginMsg" ++ Debug.toString subMsg ++ Debug.toString login)
                         Login.update
