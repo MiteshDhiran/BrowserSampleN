@@ -7,10 +7,15 @@ import Element.Input
 import Html as H exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
+import PStyle
 import Session exposing (..)
-import Style exposing (..)
-import Style.Color as StyleColor exposing (..)
-import Style.Font as Font
+
+
+
+{- import Style exposing (..)
+   import Style.Color as StyleColor exposing (..)
+   import Style.Font as Font
+-}
 
 
 type alias Model =
@@ -55,16 +60,28 @@ update msg model =
 
 view : Model -> { title : String, content : Html Msg }
 view model =
+    let
+        isLoggedInUser =
+            case model.session of
+                LoggedIn key viewer ->
+                    True
+
+                _ ->
+                    False
+
+        loggedUserName =
+            Session.getUserName model.session
+    in
     { title = "Home Page"
     , content =
-        H.div []
-            [ H.text "Home content goes here"
-            , H.a
-                [ Html.Events.onClick GoToLogin
-                , Html.Attributes.href "#login"
+        Element.layout PStyle.stylesheet <|
+            column PStyle.None
+                []
+                [ el PStyle.None [] (Element.text "Home content goes here")
+                , Element.when isLoggedInUser (el PStyle.None [] (Element.text loggedUserName))
+                , Element.when (isLoggedInUser == False) (el PStyle.NavOption [] (link "#login" (el PStyle.None [] (Element.text "Go To Login"))))
+                , Element.when (isLoggedInUser == True) (el PStyle.NavOption [] (link "#logout" (el PStyle.None [] (Element.text "Log Out"))))
                 ]
-                [ H.text "Go To Login" ]
-            ]
     }
 
 

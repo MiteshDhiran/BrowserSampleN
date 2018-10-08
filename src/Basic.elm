@@ -73,8 +73,9 @@ stylesheet =
             , Font.typeface sansSerif
             ]
         , style NavOption
-            [ Font.size 16
+            [ Font.size 36
             , Font.typeface sansSerif
+            , Color.text MyColor.blue
             ]
         , style Box
             [ Transition.all

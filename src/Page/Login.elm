@@ -96,9 +96,8 @@ update msg model =
             , Cmd.none
             )
 
-        --session = LoggedIn (Session.navKey model.session) createViewerFromUserNameToken model.userName ""
         NavigateToHomePage ->
-            ( { model | session = Session.createNewSession (Session.navKey model.session) model.userName "" }
+            ( model
             , Cmd.batch
                 [ Nav.back
                     (navKey model.session)

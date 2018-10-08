@@ -36,7 +36,7 @@ getUserName session =
             Username.toString <| Viewer.username <| viewer
 
         Guest _ ->
-            "Guest"
+            "Guest User"
 
 
 changes : (Session -> msg) -> Nav.Key -> Sub msg
