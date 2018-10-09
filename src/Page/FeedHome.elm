@@ -11,6 +11,7 @@ import Session exposing (Session)
 import Table as Tbl
 import Task
 import Time
+import Tuple
 
 
 type alias Model =
@@ -22,6 +23,7 @@ type alias Model =
     -- Loaded independently from server
     , tags : LoadingStatus.Status (List Tag)
     , tableState : Tbl.State
+    , editableTag : Maybe String
 
     --    , feed : LoadingStatus.Status Feed.Model
     }
@@ -47,24 +49,39 @@ type Msg
     | CellClicked String
 
 
-config : Tbl.Config Tag Msg
+config : Tbl.Config ( Tag, Bool ) Msg
 config =
     Tbl.config
-        { toId = \data -> Tag.toString data
+        { toId = \data -> Tag.toString <| Tuple.first data
         , toMsg = SetTableState
         , columns =
-            [ Tbl.customColumn { name = "Tag", viewData = \data -> Tag.toString data, sorter = Tbl.unsortable }
+            [ Tbl.customColumn { name = "Tag", viewData = \data -> Tag.toString <| Tuple.first data, sorter = Tbl.unsortable }
             , Tbl.veryCustomColumn { name = "Custom Tag", viewData = viewTag, sorter = Tbl.unsortable }
             ]
         }
 
 
-viewTag : Tag -> Tbl.HtmlDetails Msg
-viewTag tag =
-    Tbl.HtmlDetails [ Html.Events.onClick (CellClicked (Tag.toString tag)) ]
-        [ Html.span [] [ Html.text "$" ]
-        , Html.text (Tag.toString tag)
-        ]
+viewTag : ( Tag, Bool ) -> Tbl.HtmlDetails Msg
+viewTag tagWithEditableFlag =
+    let
+        isEditable =
+            Tuple.second tagWithEditableFlag
+
+        tagData =
+            Tag.toString (Tuple.first tagWithEditableFlag)
+    in
+    case isEditable of
+        True ->
+            Tbl.HtmlDetails [ Html.Events.onClick (CellClicked tagData) ]
+                [ Html.span [] [ Html.text ("$$$$$" ++ "") ]
+                , Html.text tagData
+                ]
+
+        False ->
+            Tbl.HtmlDetails [ Html.Events.onClick (CellClicked tagData) ]
+                [ Html.span [] [ Html.text "" ]
+                , Html.text tagData
+                ]
 
 
 init : Session -> ( Model, Cmd Msg )
@@ -87,6 +104,7 @@ init session =
       , feedPage = 1
       , tags = LoadingStatus.Loading
       , tableState = Tbl.initialSort "Tag"
+      , editableTag = Nothing
 
       --      , feed = LoadingStatus.Loading
       }
@@ -202,7 +220,7 @@ update msg model =
 
         CellClicked tag ->
             Debug.log ("Tag Clicked " ++ tag)
-                ( model, Cmd.none )
+                ( { model | editableTag = Just tag }, Cmd.none )
 
 
 view : Model -> { title : String, content : Html Msg }
@@ -211,7 +229,7 @@ view model =
         acceptableTags =
             case model.tags of
                 LoadingStatus.Loaded list ->
-                    list
+                    List.map (\item -> ( item, Tag.toString item == Maybe.withDefault "" model.editableTag )) list
 
                 _ ->
                     []
