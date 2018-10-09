@@ -6,7 +6,9 @@ import Browser.Navigation as Nav
 import Html exposing (..)
 import Json.Decode
 import Page
+import Page.Article as Article
 import Page.Blank as Blank
+import Page.FeedHome as FeedHome
 import Page.Home as Home
 import Page.Login as Login
 import Route exposing (..)
@@ -19,6 +21,8 @@ type Model
     = Redirect Session
     | Home Home.Model
     | Login Login.Model
+    | Article Article.Model
+    | FeedHome FeedHome.Model
 
 
 type Msg
@@ -28,6 +32,8 @@ type Msg
     | GotSession Session
     | GotHomeMsg Home.Msg
     | GotLoginMsg Login.Msg
+    | GotArticleMsg Article.Msg
+    | GotFeedHomeMsg FeedHome.Msg
 
 
 
@@ -107,6 +113,10 @@ update msg model =
                 home
                 |> updateWith Home GotHomeMsg model
 
+        ( GotFeedHomeMsg subMsg, FeedHome feedHome ) ->
+            FeedHome.update subMsg feedHome
+                |> updateWith FeedHome GotFeedHomeMsg model
+
         ( GotSession session, Redirect _ ) ->
             Debug.log ("GotSession" ++ Debug.toString session)
                 ( Redirect session
@@ -140,6 +150,14 @@ changeRouteTo maybeRoute model =
             Home.init session
                 |> updateWith Home GotHomeMsg model
 
+        Just (Route.Article slug) ->
+            Article.init session
+                |> updateWith Article GotArticleMsg model
+
+        Just Route.FeedHome ->
+            FeedHome.init session
+                |> updateWith FeedHome GotFeedHomeMsg model
+
 
 getSessionFromModel : Model -> Session
 getSessionFromModel model =
@@ -152,6 +170,12 @@ getSessionFromModel model =
 
         Login loginmodel ->
             loginmodel.session
+
+        Article artcilemodel ->
+            artcilemodel.session
+
+        FeedHome feedhomeModel ->
+            feedhomeModel.session
 
 
 view : Model -> Browser.Document Msg
@@ -176,6 +200,12 @@ view model =
         Login login ->
             viewPage Page.Login GotLoginMsg (Login.view login)
 
+        Article article ->
+            viewPage Page.Article GotArticleMsg (Article.view article)
+
+        FeedHome feedHome ->
+            viewPage Page.FeedHome GotFeedHomeMsg (FeedHome.view feedHome)
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
@@ -198,6 +228,12 @@ subscriptions model =
                 Sub.map
                 GotLoginMsg
                 (Login.subscriptions login)
+
+        Article article ->
+            Sub.map GotArticleMsg (Article.subscriptions article)
+
+        FeedHome feedHome ->
+            Sub.map GotFeedHomeMsg (FeedHome.subscriptions feedHome)
 
 
 

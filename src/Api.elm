@@ -1,4 +1,4 @@
-port module Api exposing (Cred(..), application, credDecoder, decodeErrors, decodeFromChange, decoderFromCred, login, onStoreChange, storageDecoder, storeCache, storeCredWith, username, viewerChanges)
+port module Api exposing (Cred(..), application, credDecoder, decodeErrors, decodeFromChange, decoderFromCred, get, login, onStoreChange, storageDecoder, storeCache, storeCredWith, username, viewerChanges)
 
 import Api.Endpoint as Endpoint exposing (Endpoint)
 import Browser
@@ -115,6 +115,25 @@ login body decoder =
 credHeader : Cred -> Http.Header
 credHeader (Cred _ str) =
     Http.header "authorization" ("Token " ++ str)
+
+
+get : Endpoint -> Maybe Cred -> Decoder a -> Http.Request a
+get url maybeCred decoder =
+    Endpoint.request
+        { method = "GET"
+        , url = url
+        , expect = Http.expectJson decoder
+        , headers =
+            case maybeCred of
+                Just cred ->
+                    [ credHeader cred ]
+
+                Nothing ->
+                    []
+        , body = Http.emptyBody
+        , timeout = Nothing
+        , withCredentials = False
+        }
 
 
 post : Endpoint -> Maybe Cred -> Http.Body -> Decoder a -> Http.Request a

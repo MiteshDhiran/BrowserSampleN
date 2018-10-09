@@ -1,4 +1,4 @@
-module Api.Endpoint exposing (Endpoint(..), login, request, unwrap)
+module Api.Endpoint exposing (Endpoint(..), login, request, tags, unwrap)
 
 import Html
 import Http
@@ -60,3 +60,8 @@ url paths queryParams =
 login : Endpoint
 login =
     url [ "users", "login" ] []
+
+
+tags : Endpoint
+tags =
+    url [ "tags" ] []

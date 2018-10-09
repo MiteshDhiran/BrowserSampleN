@@ -12,6 +12,8 @@ type Page
     = Other
     | Home
     | Login
+    | Article
+    | FeedHome
 
 
 view : Session -> Page -> { title : String, content : Html msg } -> Document msg

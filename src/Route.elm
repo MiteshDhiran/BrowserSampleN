@@ -1,5 +1,6 @@
 module Route exposing (Route(..), fromUrl, href, parser, replaceUrl, routeToString)
 
+import Article.Slug as Slug exposing (Slug)
 import Browser.Navigation as Nav
 import Html
 import Html.Attributes
@@ -12,6 +13,8 @@ type Route
     = Home
     | Login
     | Root
+    | Article Slug
+    | FeedHome
 
 
 
@@ -31,6 +34,8 @@ parser =
     oneOf
         [ Parser.map Login (s "login")
         , Parser.map Home Parser.top
+        , Parser.map Article (s "article" </> Slug.urlParser)
+        , Parser.map FeedHome (s "feedhome")
         ]
 
 
@@ -47,6 +52,12 @@ routeToString page =
 
                 Login ->
                     [ "login" ]
+
+                Article slug ->
+                    [ "article", Slug.toString slug ]
+
+                FeedHome ->
+                    [ "feedhome" ]
     in
     "#/" ++ String.join "/" pieces
 

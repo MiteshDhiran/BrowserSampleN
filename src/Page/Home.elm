@@ -81,6 +81,7 @@ view model =
                 , Element.when isLoggedInUser (el PStyle.None [] (Element.text loggedUserName))
                 , Element.when (isLoggedInUser == False) (el PStyle.NavOption [] (link "#login" (el PStyle.None [] (Element.text "Go To Login"))))
                 , Element.when (isLoggedInUser == True) (el PStyle.NavOption [] (link "#logout" (el PStyle.None [] (Element.text "Log Out"))))
+                , Element.when (isLoggedInUser == True) (el PStyle.NavOption [] (link "#feedhome" (el PStyle.None [] (Element.text "Feed Home"))))
                 ]
     }
 

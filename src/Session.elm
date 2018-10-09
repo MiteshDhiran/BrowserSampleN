@@ -1,4 +1,4 @@
-module Session exposing (Session(..), changes, createNewSession, fromViewer, getUserName, navKey)
+module Session exposing (Session(..), changes, createNewSession, cred, fromViewer, getUserName, navKey)
 
 import Api exposing (..)
 import Browser.Navigation as Nav
@@ -27,6 +27,16 @@ navKey session =
 
         Guest key ->
             key
+
+
+cred : Session -> Maybe Cred
+cred session =
+    case session of
+        LoggedIn _ val ->
+            Just (Viewer.cred val)
+
+        Guest _ ->
+            Nothing
 
 
 getUserName : Session -> String
