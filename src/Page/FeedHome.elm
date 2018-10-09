@@ -3,6 +3,7 @@ module Page.FeedHome exposing (FeedTab(..), Model, Msg, init, subscriptions, upd
 import Api exposing (Cred(..))
 import Article.Tag as Tag exposing (Tag)
 import Html exposing (Html)
+import Html.Attributes
 import Html.Events
 import Http
 import Loading
@@ -73,8 +74,8 @@ viewTag tagWithEditableFlag =
     case isEditable of
         True ->
             Tbl.HtmlDetails [ Html.Events.onClick (CellClicked tagData) ]
-                [ Html.span [] [ Html.text ("$$$$$" ++ "") ]
-                , Html.text tagData
+                [ Html.span [] [ Html.text "" ]
+                , Html.input [ Html.Attributes.value tagData ] []
                 ]
 
         False ->
