@@ -250,7 +250,7 @@ update msg model =
 
         SharedCounterMessage counterState ->
             Debug.log ("Counter state received" ++ Debug.toString counterState)
-                ( model, Cmd.none )
+                ( { model | counterState = counterState }, Cmd.none )
 
 
 
