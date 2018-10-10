@@ -8,6 +8,8 @@ import Html.Events
 import Http
 import Loading
 import LoadingStatus exposing (Status(..))
+import Page.Counter as Counter
+import Page.ShareableCounter as SCounter exposing (..)
 import Session exposing (Session)
 import Table as Tbl
 import Task
@@ -25,7 +27,11 @@ type alias Model =
     , tags : LoadingStatus.Status (List Tag)
     , tableState : Tbl.State
     , editableTag : Maybe String
+    , counterVal : Int
+    , counterState : SCounter.State
 
+    --, counterModel : Counter.Model
+    --, counterMsg : Counter.Msg
     --    , feed : LoadingStatus.Status Feed.Model
     }
 
@@ -48,6 +54,18 @@ type Msg
     | PassedSlowLoadThreshold
     | SetTableState Tbl.State
     | CellClicked String
+    | SharedCounterMessage SCounter.State
+
+
+
+--| GotCounterMsg Counter.Msg
+
+
+sconfig : SCounter.Config Msg
+sconfig =
+    SCounter.config
+        { toMsg = SharedCounterMessage
+        }
 
 
 config : Tbl.Config ( Tag, Bool ) Msg
@@ -98,6 +116,9 @@ init session =
 
         loadTags =
             Http.toTask Tag.list
+
+        ( lcounterModel, lcounterMessage ) =
+            Counter.init
     in
     ( { session = session
       , timeZone = Time.utc
@@ -106,7 +127,11 @@ init session =
       , tags = LoadingStatus.Loading
       , tableState = Tbl.initialSort "Tag"
       , editableTag = Nothing
+      , counterVal = 0
+      , counterState = SCounter.initialState 1
 
+      --, counterModel = lcounterModel
+      --, counterMsg = lcounterMessage
       --      , feed = LoadingStatus.Loading
       }
     , Cmd.batch
@@ -223,6 +248,22 @@ update msg model =
             Debug.log ("Tag Clicked " ++ tag)
                 ( { model | editableTag = Just tag }, Cmd.none )
 
+        SharedCounterMessage counterState ->
+            Debug.log ("Counter state received" ++ Debug.toString counterState)
+                ( model, Cmd.none )
+
+
+
+{- ( { model | counterState = counterState }, Cmd.none ) -}
+--Debug.log ("Counter state received" ++ ((Debug.toString counterState))
+
+
+updateWith : (subModel -> Model) -> (subMsg -> Msg) -> Model -> ( subModel, Cmd subMsg ) -> ( Model, Cmd Msg )
+updateWith toModel toMsg model ( subModel, subCmd ) =
+    ( toModel subModel
+    , Cmd.map toMsg subCmd
+    )
+
 
 view : Model -> { title : String, content : Html Msg }
 view model =
@@ -240,6 +281,9 @@ view model =
         Html.div []
             [ Html.text ("Feed Home Content goes here" ++ Debug.toString model.tags)
             , Tbl.view config model.tableState acceptableTags
+            , SCounter.view sconfig model.counterState
+
+            --, Counter.view model.counterModel
             ]
     }
 
