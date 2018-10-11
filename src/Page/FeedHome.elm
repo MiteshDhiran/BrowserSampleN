@@ -28,7 +28,7 @@ type alias Model =
     , tableState : Tbl.State
     , editableTag : Maybe String
     , counterVal : Int
-    , counterState : SCounter.State
+    , countersState : List SCounter.State
 
     --, counterModel : Counter.Model
     --, counterMsg : Counter.Msg
@@ -128,7 +128,7 @@ init session =
       , tableState = Tbl.initialSort "Tag"
       , editableTag = Nothing
       , counterVal = 0
-      , counterState = SCounter.initialState 1
+      , countersState = [ SCounter.initialState 1 100, SCounter.initialState 2 100 ]
 
       --, counterModel = lcounterModel
       --, counterMsg = lcounterMessage
@@ -249,11 +249,23 @@ update msg model =
                 ( { model | editableTag = Just tag }, Cmd.none )
 
         SharedCounterMessage counterState ->
-            Debug.log ("Counter state received" ++ Debug.toString counterState)
-                ( { model | counterState = counterState }, Cmd.none )
+            let
+                newCounters =
+                    List.map
+                        (\item ->
+                            if SCounter.isCounterIDEqual item counterState then
+                                counterState
+
+                            else
+                                item
+                        )
+                        model.countersState
+            in
+            ( { model | countersState = newCounters }, Cmd.none )
 
 
 
+--Debug.log ("Counter state received" ++ Debug.toString counterState)
 {- ( { model | counterState = counterState }, Cmd.none ) -}
 --Debug.log ("Counter state received" ++ ((Debug.toString counterState))
 
@@ -281,9 +293,7 @@ view model =
         Html.div []
             [ Html.text ("Feed Home Content goes here" ++ Debug.toString model.tags)
             , Tbl.view config model.tableState acceptableTags
-            , SCounter.view sconfig model.counterState
-
-            --, Counter.view model.counterModel
+            , Html.div [] (List.map (\st -> SCounter.view sconfig st) model.countersState)
             ]
     }
 

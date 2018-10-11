@@ -1,4 +1,4 @@
-module Page.ShareableCounter exposing (Config(..), State, config, initialState, view)
+module Page.ShareableCounter exposing (Config(..), State, config, initialState, isCounterIDEqual, view)
 
 import Html exposing (Html)
 import Html.Events
@@ -8,12 +8,17 @@ import Json.Decode as Json
 {-| Tracks the counter value.
 -}
 type State
-    = State Int
+    = State Int Int
 
 
-initialState : Int -> State
-initialState initialValue =
-    State initialValue
+initialState : Int -> Int -> State
+initialState counterId initialValue =
+    State counterId initialValue
+
+
+isCounterIDEqual : State -> State -> Bool
+isCounterIDEqual (State a b) (State c d) =
+    a == c
 
 
 {-| Configuration for your counter module, describing methods.
@@ -40,15 +45,15 @@ config { toMsg } =
 
 
 view : Config msg -> State -> Html msg
-view ((Config { toMsg }) as conf) (State counterVal) =
-    Html.label [ onClick counterVal toMsg ] [ Html.text ("COUNTER VALUE:" ++ Debug.toString counterVal) ]
+view ((Config { toMsg }) as conf) (State counterId counterVal) =
+    Html.label [ onClick counterId counterVal toMsg ] [ Html.text ("Counter ID:" ++ Debug.toString counterId ++ "COUNTER VALUE:" ++ Debug.toString counterVal) ]
 
 
-onClick : Int -> (State -> msg) -> Html.Attribute msg
-onClick counterVal toMsg =
+onClick : Int -> Int -> (State -> msg) -> Html.Attribute msg
+onClick counterId counterVal toMsg =
     Html.Events.on "click" <|
         Json.map toMsg <|
-            Json.map State (Json.succeed (counterVal + 1))
+            Json.map2 State (Json.succeed counterId) (Json.succeed (counterVal + 1))
 
 
 
