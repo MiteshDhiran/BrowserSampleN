@@ -27,7 +27,7 @@ update msg model =
             ( { model | counter = model.counter + 1 }, Cmd.none )
 
         Decrement ->
-            ( { model | counter = model.counter + 1 }, Cmd.none )
+            ( { model | counter = model.counter - 1 }, Cmd.none )
 
 
 view : Model -> Html Msg

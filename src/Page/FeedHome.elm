@@ -29,8 +29,8 @@ type alias Model =
     , editableTag : Maybe String
     , counterVal : Int
     , countersState : List SCounter.State
+    , childCounterModel : Counter.Model
 
-    --, counterModel : Counter.Model
     --, counterMsg : Counter.Msg
     --    , feed : LoadingStatus.Status Feed.Model
     }
@@ -55,6 +55,7 @@ type Msg
     | SetTableState Tbl.State
     | CellClicked String
     | SharedCounterMessage SCounter.State
+    | GotChildCounterMsg Counter.Msg
 
 
 
@@ -129,6 +130,7 @@ init session =
       , editableTag = Nothing
       , counterVal = 0
       , countersState = [ SCounter.initialState 1 100, SCounter.initialState 2 100 ]
+      , childCounterModel = lcounterModel
 
       --, counterModel = lcounterModel
       --, counterMsg = lcounterMessage
@@ -263,6 +265,13 @@ update msg model =
             in
             ( { model | countersState = newCounters }, Cmd.none )
 
+        GotChildCounterMsg subMsg ->
+            let
+                behavior =
+                    Counter.update subMsg model.childCounterModel
+            in
+            ( { model | childCounterModel = Tuple.first behavior }, Cmd.none )
+
 
 
 --Debug.log ("Counter state received" ++ Debug.toString counterState)
@@ -294,6 +303,7 @@ view model =
             [ Html.text ("Feed Home Content goes here" ++ Debug.toString model.tags)
             , Tbl.view config model.tableState acceptableTags
             , Html.div [] (List.map (\st -> SCounter.view sconfig st) model.countersState)
+            , Html.div [] [ Html.map GotChildCounterMsg (Counter.view model.childCounterModel) ]
             ]
     }
 
