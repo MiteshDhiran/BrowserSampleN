@@ -20,6 +20,7 @@ type Expression
     | Float Float
     | Property PropertyMetaInfo
     | BinOp Operator Expression Expression
+    | SubExpression Expression
 
 
 type alias PropertyMetaInfo =
@@ -68,7 +69,12 @@ update msg model =
 init : Session -> ( Model, Cmd Msg )
 init session =
     ( { session = session
-      , ruleExpression = BinOp And (BinOp Equal (String "A") (String "B")) (BinOp Equal (String "E") (String "F"))
+      , ruleExpression =
+            BinOp And
+                (SubExpression (BinOp And (BinOp Equal (String "A") (String "B")) (BinOp Equal (String "E") (String "F"))))
+                (SubExpression
+                    (BinOp And (BinOp Equal (String "1") (String "11")) (BinOp Equal (String "2") (String "22")))
+                )
       }
     , Cmd.none
     )
@@ -76,33 +82,50 @@ init session =
 
 viewo : Model -> Html Msg
 viewo model =
-    Html.div [] (getHTML [] model.ruleExpression)
+    Html.div [] (getHTML [] 0 model.ruleExpression)
 
 
 view : Model -> { title : String, content : Html Msg }
 view model =
     { title = "Rule Editor"
-    , content = Html.div [] (getHTML [] model.ruleExpression)
+    , content = Html.div [] (getHTML [] 0 model.ruleExpression)
     }
 
 
-getHTML : List (Html Msg) -> Expression -> List (Html Msg)
-getHTML acc expression =
+getSpaces : Int -> String
+getSpaces numberOfSpaces =
+    String.repeat numberOfSpaces "-"
+
+
+getHTML : List (Html Msg) -> Int -> Expression -> List (Html Msg)
+getHTML acc indent expression =
     case expression of
+        SubExpression subExp ->
+            [ Html.div []
+                ([ Html.text "(" ]
+                    ++ getHTML acc indent subExp
+                    ++ [ Html.text ")" ]
+                )
+            ]
+
         BinOp operator lhs rhs ->
             --:: Html.text ("Operator" ++ Debug.toString operator)
             case operator of
                 And ->
-                    getHTML acc lhs
+                    let
+                        newIndent =
+                            indent + 1
+                    in
+                    getHTML acc indent lhs
                         ++ [ Html.div []
-                                ([ Html.text ("----" ++ Debug.toString operator) ]
-                                    ++ getHTML acc rhs
+                                ([ Html.text (getSpaces newIndent ++ Debug.toString operator) ]
+                                    ++ getHTML acc newIndent rhs
                                 )
                            ]
 
                 {- [ Html.div [] (getHTML acc lhs ++ [ Html.text ("Operator New Line" ++ Debug.toString operator) ] ++ getHTML acc rhs) ] -}
                 _ ->
-                    getHTML acc lhs ++ [ Html.text ("Operator" ++ Debug.toString operator) ] ++ getHTML acc rhs
+                    getHTML acc indent lhs ++ [ Html.text ("Operator" ++ Debug.toString operator) ] ++ getHTML acc indent rhs
 
         Property propMetainfo ->
             Html.text ("PropertyName" ++ Tuple.first propMetainfo.propertyName) :: acc
