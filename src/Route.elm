@@ -15,6 +15,7 @@ type Route
     | Root
     | Article Slug
     | FeedHome
+    | RuleEditor
 
 
 
@@ -36,6 +37,7 @@ parser =
         , Parser.map Home Parser.top
         , Parser.map Article (s "article" </> Slug.urlParser)
         , Parser.map FeedHome (s "feedhome")
+        , Parser.map RuleEditor (s "ruleeditor")
         ]
 
 
@@ -58,6 +60,9 @@ routeToString page =
 
                 FeedHome ->
                     [ "feedhome" ]
+
+                RuleEditor ->
+                    [ "ruleeditor" ]
     in
     "#/" ++ String.join "/" pieces
 

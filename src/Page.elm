@@ -14,6 +14,7 @@ type Page
     | Login
     | Article
     | FeedHome
+    | RuleEditor
 
 
 view : Session -> Page -> { title : String, content : Html msg } -> Document msg

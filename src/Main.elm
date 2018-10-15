@@ -11,6 +11,7 @@ import Page.Blank as Blank
 import Page.FeedHome as FeedHome
 import Page.Home as Home
 import Page.Login as Login
+import Page.RuleEditor as RuleEditor
 import Route exposing (..)
 import Session exposing (Session)
 import Url exposing (Url)
@@ -23,6 +24,7 @@ type Model
     | Login Login.Model
     | Article Article.Model
     | FeedHome FeedHome.Model
+    | RuleEditor RuleEditor.Model
 
 
 type Msg
@@ -34,6 +36,7 @@ type Msg
     | GotLoginMsg Login.Msg
     | GotArticleMsg Article.Msg
     | GotFeedHomeMsg FeedHome.Msg
+    | GotRuleEditorMsg RuleEditor.Msg
 
 
 
@@ -123,6 +126,10 @@ update msg model =
                 , Route.replaceUrl (Session.navKey session) Route.Home
                 )
 
+        ( GotRuleEditorMsg subMsg, RuleEditor ruleEditorModel ) ->
+            RuleEditor.update subMsg ruleEditorModel
+                |> updateWith RuleEditor GotRuleEditorMsg model
+
         ( _, _ ) ->
             -- Disregard messages that arrived for the wrong page.
             Debug.log ("Discarded update message" ++ Debug.toString model)
@@ -158,6 +165,10 @@ changeRouteTo maybeRoute model =
             FeedHome.init session
                 |> updateWith FeedHome GotFeedHomeMsg model
 
+        Just Route.RuleEditor ->
+            RuleEditor.init session
+                |> updateWith RuleEditor GotRuleEditorMsg model
+
 
 getSessionFromModel : Model -> Session
 getSessionFromModel model =
@@ -176,6 +187,9 @@ getSessionFromModel model =
 
         FeedHome feedhomeModel ->
             feedhomeModel.session
+
+        RuleEditor ruleeditorModel ->
+            ruleeditorModel.session
 
 
 view : Model -> Browser.Document Msg
@@ -206,6 +220,9 @@ view model =
         FeedHome feedHome ->
             viewPage Page.FeedHome GotFeedHomeMsg (FeedHome.view feedHome)
 
+        RuleEditor ruleeditor ->
+            viewPage Page.RuleEditor GotRuleEditorMsg (RuleEditor.view ruleeditor)
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
@@ -234,6 +251,9 @@ subscriptions model =
 
         FeedHome feedHome ->
             Sub.map GotFeedHomeMsg (FeedHome.subscriptions feedHome)
+
+        RuleEditor ruleeditor ->
+            Sub.none
 
 
 
