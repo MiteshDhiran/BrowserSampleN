@@ -111,6 +111,52 @@ digits =
         }
 
 
+quotedstringParser : Parser String
+quotedstringParser =
+    succeed identity
+        |. token "$"
+        |= loop [] stringHelp
+
+
+stringHelp : List String -> Parser (Step (List String) String)
+stringHelp revChunks =
+    oneOf
+        [ token "$"
+            |> map (\_ -> Done (String.join "" (List.reverse revChunks)))
+        , chompWhile isUninteresting
+            |> getChompedString
+            |> map (\chunk -> Loop (chunk :: revChunks))
+        ]
+
+
+isUninteresting : Char -> Bool
+isUninteresting char =
+    char /= '$'
+
+
+propertyParser : Parser PropertyMetaInfo
+propertyParser =
+    Parser.map
+        (\( propertyName, parentProperties ) ->
+            { propertyName = ( propertyName, [] ), propertyDataType = StringDataType }
+        )
+    <|
+        succeed Tuple.pair
+            |. spaces
+            |. symbol "propertyName"
+            |. spaces
+            |. symbol "("
+            |. spaces
+            |= quotedstringParser
+            |. spaces
+            |. symbol "["
+            |. spaces
+            |= quotedstringParser
+            |. spaces
+            |. symbol "]"
+            |. symbol ")"
+
+
 operatorParser : Parser Operator
 operatorParser =
     oneOf
@@ -134,6 +180,7 @@ term : Parser Expression
 term =
     oneOf
         [ digits
+        , Parser.map (\m -> Property m) <| propertyParser
         , succeed identity
             |. spaces
             |. operatorParser
@@ -199,8 +246,8 @@ binopParser =
 
 
 parse : String -> Result (List DeadEnd) Expression
-parse string =
-    run binopParser string
+parse str =
+    run binopParser str
 
 
 
@@ -210,8 +257,8 @@ parse string =
 
 
 parseExp : String -> Result (List DeadEnd) Expression
-parseExp string =
-    run expressionParser string
+parseExp str =
+    run expressionParser str
 
 
 
@@ -237,7 +284,12 @@ getParsedExpressionString =
 
 getParsedExpString : String
 getParsedExpString =
-    Debug.toString (parseExp "1 = 1 && 2 = 2 && 3 = 3")
+    Debug.toString (parseExp "propertyName($Mitesh$[$Parent$]) = 11 && 1 == 1 && 2 = 2 && 3 = 3")
+
+
+
+{- Debug.toString (parseExp "1 = 1 && 2 = 2 && 3 = 3") -}
+{- Debug.toString (parseExp "propertyName($Mitesh$[$Parent$]) && 1 = 1 && 2 = 2 && 3 = 3") -}
 
 
 view : Model -> { title : String, content : Html Msg }
