@@ -1,6 +1,7 @@
 module Page.RuleEditor exposing (DataTypeMetaInfo(..), Expression(..), Model, Msg, Operator(..), PropertyMetaInfo, ResourceMetaInfo, ResourceName(..), init, update, view)
 
 import Html exposing (Html)
+import Parser exposing (..)
 import Session exposing (Session)
 
 
@@ -80,15 +81,94 @@ init session =
     )
 
 
+digits : Parser Expression
+digits =
+    number
+        { int = Just Integer
+        , hex = Just Integer
+        , octal = Nothing
+        , binary = Nothing
+        , float = Just Float
+        }
+
+
+operatorParser : Parser Operator
+operatorParser =
+    oneOf
+        [ map (\_ -> Equal) (symbol "=")
+        , map (\_ -> GreaterThan) (symbol ">")
+        , map (\_ -> LessThan) (symbol "<")
+        , map (\_ -> NotEqualTo) (symbol "!=")
+        , map (\_ -> And) (symbol "&")
+        , map (\_ -> Or) (symbol "|")
+        ]
+
+
+
+{-
+   " = 1 2 "
+   BinOp Equal 1 2
+-}
+
+
+{-| Every expression starts with a term. After that, it may be done, or there
+may be a `+` or `*` sign and more math.
+-}
+
+
+
+{-
+   expression : Parser Expression
+   expression =
+       term
+           |> andThen (expressionHelp [])
+-}
+{-
+   expression : Parser Expression
+   expression =
+       operator
+           |> andThen (expressionHelp [])
+-}
+
+
+binopParser : Parser Expression
+binopParser =
+    succeed BinOp
+        |= operatorParser
+        |. spaces
+        |= digits
+        |. spaces
+        |= digits
+
+
+parse : String -> Result (List DeadEnd) Expression
+parse string =
+    run binopParser string
+
+
+
+{-
+   https://github.com/elm/parser
+
+      expression : Parser s Expression
+      expression
+-}
+
+
 viewo : Model -> Html Msg
 viewo model =
     Html.div [] (getHTML [] 0 model.ruleExpression)
 
 
+getParsedExpressionString : String
+getParsedExpressionString =
+    Debug.toString (parse "= 1 2")
+
+
 view : Model -> { title : String, content : Html Msg }
 view model =
     { title = "Rule Editor"
-    , content = Html.div [] (getHTML [] 0 model.ruleExpression)
+    , content = Html.div [] (getHTML [] 0 model.ruleExpression ++ [ Html.div [] [ Html.text getParsedExpressionString ] ])
     }
 
 
