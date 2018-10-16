@@ -24,6 +24,18 @@ type Expression
     | SubExpression Expression
 
 
+type Exp
+    = CharacterE Char
+    | StringE String
+    | IntegerE Int
+    | FloatE Float
+
+
+type BinaryTree exp
+    = Empty
+    | Node Operator (BinaryTree Exp) (BinaryTree Exp)
+
+
 type alias PropertyMetaInfo =
     { propertyName : ( String, List String )
     , propertyDataType : DataTypeMetaInfo
@@ -49,6 +61,8 @@ type alias ResourceMetaInfo =
 type alias Model =
     { session : Session
     , ruleExpression : Expression
+
+    {- , binaryTree : BinaryTree Expression -}
     }
 
 
@@ -64,7 +78,10 @@ update msg model =
 
 
 
-{- init : Session -> Model -}
+{- init : Session -> Model
+   = 1 1 & = 2 2
+   1 = 1  & 2 = 2
+-}
 
 
 init : Session -> ( Model, Cmd Msg )
@@ -76,6 +93,8 @@ init session =
                 (SubExpression
                     (BinOp And (BinOp Equal (String "1") (String "11")) (BinOp Equal (String "2") (String "22")))
                 )
+
+      {- , binaryTree = Node (Equal (IntegerE 1) (IntegerE 1)) -}
       }
     , Cmd.none
     )
@@ -99,8 +118,8 @@ operatorParser =
         , map (\_ -> GreaterThan) (symbol ">")
         , map (\_ -> LessThan) (symbol "<")
         , map (\_ -> NotEqualTo) (symbol "!=")
-        , map (\_ -> And) (symbol "&")
-        , map (\_ -> Or) (symbol "|")
+        , map (\_ -> And) (symbol "&&")
+        , map (\_ -> Or) (symbol "||")
         ]
 
 
@@ -111,24 +130,62 @@ operatorParser =
 -}
 
 
-{-| Every expression starts with a term. After that, it may be done, or there
-may be a `+` or `*` sign and more math.
--}
+term : Parser Expression
+term =
+    oneOf
+        [ digits
+        , succeed identity
+            |. spaces
+            |. operatorParser
+            |. spaces
+            |= lazy (\_ -> expressionParser)
+            |. spaces
+        ]
 
 
+expressionParser : Parser Expression
+expressionParser =
+    term
+        |> andThen (expressionHelp [])
 
-{-
-   expression : Parser Expression
-   expression =
-       term
-           |> andThen (expressionHelp [])
--}
-{-
-   expression : Parser Expression
-   expression =
-       operator
-           |> andThen (expressionHelp [])
--}
+
+expressionHelp : List ( Expression, Operator ) -> Expression -> Parser Expression
+expressionHelp revOps lhs =
+    oneOf
+        [ succeed Tuple.pair
+            |. spaces
+            |= operatorParser
+            |. spaces
+            |= term
+            |. spaces
+            |> andThen (\( opr, newExpr ) -> expressionHelp (( lhs, opr ) :: revOps) newExpr)
+        , lazy (\_ -> succeed (finalize revOps lhs))
+        ]
+
+
+finalize : List ( Expression, Operator ) -> Expression -> Expression
+finalize revOps finalExpr =
+    case revOps of
+        [] ->
+            finalExpr
+
+        ( expr, Equal ) :: otherRevOps ->
+            finalize otherRevOps (BinOp Equal expr finalExpr)
+
+        ( expr, LessThan ) :: otherRevOps ->
+            finalize otherRevOps (BinOp LessThan expr finalExpr)
+
+        ( expr, GreaterThan ) :: otherRevOps ->
+            finalize otherRevOps (BinOp GreaterThan expr finalExpr)
+
+        ( expr, NotEqualTo ) :: otherRevOps ->
+            finalize otherRevOps (BinOp NotEqualTo expr finalExpr)
+
+        ( expr, And ) :: otherRevOps ->
+            BinOp And (finalize otherRevOps expr) finalExpr
+
+        ( expr, Or ) :: otherRevOps ->
+            BinOp Or (finalize otherRevOps expr) finalExpr
 
 
 binopParser : Parser Expression
@@ -148,10 +205,23 @@ parse string =
 
 
 {-
-   https://github.com/elm/parser
+   1 = 1 & 2 = 2
+-}
 
-      expression : Parser s Expression
-      expression
+
+parseExp : String -> Result (List DeadEnd) Expression
+parseExp string =
+    run expressionParser string
+
+
+
+{-
+
+   " = 1 2 && = 1 3"
+      https://github.com/elm/parser
+
+         expression : Parser s Expression
+         expression
 -}
 
 
@@ -162,13 +232,18 @@ viewo model =
 
 getParsedExpressionString : String
 getParsedExpressionString =
-    Debug.toString (parse "= 1 2")
+    Debug.toString (parse "= 11 21 & 2 3")
+
+
+getParsedExpString : String
+getParsedExpString =
+    Debug.toString (parseExp "1 = 1 && 2 = 2 && 3 = 3")
 
 
 view : Model -> { title : String, content : Html Msg }
 view model =
     { title = "Rule Editor"
-    , content = Html.div [] (getHTML [] 0 model.ruleExpression ++ [ Html.div [] [ Html.text getParsedExpressionString ] ])
+    , content = Html.div [] (getHTML [] 0 model.ruleExpression ++ [ Html.div [] [ Html.text getParsedExpString ] ])
     }
 
 
