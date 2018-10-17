@@ -22,6 +22,7 @@ type Expression
     | Property PropertyMetaInfo
     | BinOp Operator Expression Expression
     | SubExpression Expression
+    | PartialExpression Operator Expression Expression
 
 
 type Exp
@@ -190,10 +191,28 @@ term =
         ]
 
 
+{-| . operatorParser
+-}
 expressionParser : Parser Expression
 expressionParser =
     term
         |> andThen (expressionHelp [])
+
+
+
+{- expressionHelp : List ( Expression, Operator ) -> Expression -> Parser Expression
+   expressionHelp revOps lhs =
+       oneOf
+           [ succeed Tuple.pair
+               |. spaces
+               |= operatorParser
+               |. spaces
+               |= term
+               |. spaces
+               |> andThen (\( opr, newExpr ) -> expressionHelp (( lhs, opr ) :: revOps) newExpr)
+           , lazy (\_ -> succeed (finalize revOps lhs))
+           ]
+-}
 
 
 expressionHelp : List ( Expression, Operator ) -> Expression -> Parser Expression
@@ -210,6 +229,11 @@ expressionHelp revOps lhs =
         ]
 
 
+getExpFromPartailExpAndOpExp : Operator -> Expression -> Expression -> ( Operator, Expression ) -> Expression
+getExpFromPartailExpAndOpExp peop pexp fexp ( op, exp ) =
+    BinOp peop (BinOp op exp pexp) fexp
+
+
 finalize : List ( Expression, Operator ) -> Expression -> Expression
 finalize revOps finalExpr =
     case revOps of
@@ -217,10 +241,20 @@ finalize revOps finalExpr =
             finalExpr
 
         ( expr, Equal ) :: otherRevOps ->
-            finalize otherRevOps (BinOp Equal expr finalExpr)
+            case finalExpr of
+                PartialExpression sop sexp sfexp ->
+                    finalize otherRevOps
+                        (getExpFromPartailExpAndOpExp sop sexp sfexp ( Equal, expr ))
+
+                _ ->
+                    finalize
+                        otherRevOps
+                        (BinOp Equal expr finalExpr)
 
         ( expr, LessThan ) :: otherRevOps ->
-            finalize otherRevOps (BinOp LessThan expr finalExpr)
+            finalize
+                otherRevOps
+                (BinOp LessThan expr finalExpr)
 
         ( expr, GreaterThan ) :: otherRevOps ->
             finalize otherRevOps (BinOp GreaterThan expr finalExpr)
@@ -229,10 +263,64 @@ finalize revOps finalExpr =
             finalize otherRevOps (BinOp NotEqualTo expr finalExpr)
 
         ( expr, And ) :: otherRevOps ->
-            BinOp And (finalize otherRevOps expr) finalExpr
+            Debug.log
+                ("AND:"
+                    ++ Debug.toString expr
+                    ++ "::O::"
+                    ++ Debug.toString otherRevOps
+                    ++ "::F::"
+                    ++ Debug.toString finalExpr
+                )
+                BinOp
+                And
+                (finalize otherRevOps expr)
+                finalExpr
 
         ( expr, Or ) :: otherRevOps ->
-            BinOp Or (finalize otherRevOps expr) finalExpr
+            -- if otherRevOps is empty then dont generate OR clause , then what to do -- finalize otherRevOps::expr
+            case otherRevOps of
+                [] ->
+                    Debug.log
+                        ("OR OTHER IS EMPTY. Expression:"
+                            ++ Debug.toString expr
+                            ++ "Final Expr is"
+                            ++ Debug.toString finalExpr
+                        )
+                        finalize
+                        otherRevOps
+                        (PartialExpression Or expr finalExpr)
+
+                --finalize (otherRevOps ++ [ ( expr, Or ) ]) finalExpr
+                _ ->
+                    BinOp Or (finalize otherRevOps expr) finalExpr
+
+
+
+{-
+
+   Debug.log
+                   ("EQ:"
+                       ++ Debug.toString expr
+                       ++ "::O::"
+                       ++ Debug.toString otherRevOps
+                       ++ "::F::"
+                       ++ Debug.toString finalExpr
+                   )
+
+      Debug.log
+                      ("OR:"
+                          ++ Debug.toString expr
+                          ++ "::O::"
+                          ++ Debug.toString otherRevOps
+                          ++ "::F::"
+                          ++ Debug.toString finalExpr
+                      )
+
+      BinOp
+         Or
+         (finalize otherRevOps expr)
+         finalExpr
+-}
 
 
 binopParser : Parser Expression
@@ -243,6 +331,21 @@ binopParser =
         |= digits
         |. spaces
         |= digits
+
+
+
+{- BinOp
+   Or
+   (finalize otherRevOps expr)
+   finalExpr
+
+   case otherRevOps of
+                   firstOtherOP :: restOtherOps ->
+                       BinOp Or finalExpr <| finalize (restOtherOps ++ [ firstOtherOP ]) expr
+
+                   _ ->
+                       BinOp Or (finalize otherRevOps expr) finalExpr
+-}
 
 
 parse : String -> Result (List DeadEnd) Expression
@@ -284,10 +387,11 @@ getParsedExpressionString =
 
 getParsedExpString : String
 getParsedExpString =
-    Debug.toString (parseExp "propertyName($Mitesh$[$Parent$]) = 11 && 1 == 1 && 2 = 2 && 3 = 3")
+    Debug.toString (parseExp "1 = 14 || 2 == 24 || 3 == 34")
 
 
 
+{- Debug.toString (parseExp "1 = 14 || 2 == 24 && 3 = 34 && 4 = 44 && 5 = 55") -}
 {- Debug.toString (parseExp "1 = 1 && 2 = 2 && 3 = 3") -}
 {- Debug.toString (parseExp "propertyName($Mitesh$[$Parent$]) && 1 = 1 && 2 = 2 && 3 = 3") -}
 
@@ -333,6 +437,9 @@ getHTML acc indent expression =
                 {- [ Html.div [] (getHTML acc lhs ++ [ Html.text ("Operator New Line" ++ Debug.toString operator) ] ++ getHTML acc rhs) ] -}
                 _ ->
                     getHTML acc indent lhs ++ [ Html.text ("Operator" ++ Debug.toString operator) ] ++ getHTML acc indent rhs
+
+        PartialExpression operator lhs rhs ->
+            Html.text "Partial Expression" :: acc
 
         Property propMetainfo ->
             Html.text ("PropertyName" ++ Tuple.first propMetainfo.propertyName) :: acc
