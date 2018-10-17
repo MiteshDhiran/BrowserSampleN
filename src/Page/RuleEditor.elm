@@ -234,6 +234,19 @@ getExpFromPartailExpAndOpExp peop pexp fexp ( op, exp ) =
     BinOp peop (BinOp op exp pexp) fexp
 
 
+getBinaryExpression : (List ( Expression, Operator ) -> Expression -> Expression) -> ( Expression, Operator ) -> List ( Expression, Operator ) -> Expression -> Expression
+getBinaryExpression finalizeFunc ( expr, operator ) otherRevOps finalExpr =
+    case finalExpr of
+        PartialExpression sop sexp sfexp ->
+            finalizeFunc otherRevOps
+                (getExpFromPartailExpAndOpExp sop sexp sfexp ( operator, expr ))
+
+        _ ->
+            finalizeFunc
+                otherRevOps
+                (BinOp operator expr finalExpr)
+
+
 finalize : List ( Expression, Operator ) -> Expression -> Expression
 finalize revOps finalExpr =
     case revOps of
@@ -241,56 +254,30 @@ finalize revOps finalExpr =
             finalExpr
 
         ( expr, Equal ) :: otherRevOps ->
-            case finalExpr of
-                PartialExpression sop sexp sfexp ->
-                    finalize otherRevOps
-                        (getExpFromPartailExpAndOpExp sop sexp sfexp ( Equal, expr ))
-
-                _ ->
-                    finalize
-                        otherRevOps
-                        (BinOp Equal expr finalExpr)
+            getBinaryExpression finalize ( expr, Equal ) otherRevOps finalExpr
 
         ( expr, LessThan ) :: otherRevOps ->
-            finalize
-                otherRevOps
-                (BinOp LessThan expr finalExpr)
+            getBinaryExpression finalize ( expr, LessThan ) otherRevOps finalExpr
 
         ( expr, GreaterThan ) :: otherRevOps ->
-            finalize otherRevOps (BinOp GreaterThan expr finalExpr)
+            getBinaryExpression finalize ( expr, GreaterThan ) otherRevOps finalExpr
 
         ( expr, NotEqualTo ) :: otherRevOps ->
-            finalize otherRevOps (BinOp NotEqualTo expr finalExpr)
+            getBinaryExpression finalize ( expr, NotEqualTo ) otherRevOps finalExpr
 
         ( expr, And ) :: otherRevOps ->
-            Debug.log
-                ("AND:"
-                    ++ Debug.toString expr
-                    ++ "::O::"
-                    ++ Debug.toString otherRevOps
-                    ++ "::F::"
-                    ++ Debug.toString finalExpr
-                )
-                BinOp
-                And
-                (finalize otherRevOps expr)
-                finalExpr
-
-        ( expr, Or ) :: otherRevOps ->
-            -- if otherRevOps is empty then dont generate OR clause , then what to do -- finalize otherRevOps::expr
             case otherRevOps of
                 [] ->
-                    Debug.log
-                        ("OR OTHER IS EMPTY. Expression:"
-                            ++ Debug.toString expr
-                            ++ "Final Expr is"
-                            ++ Debug.toString finalExpr
-                        )
-                        finalize
-                        otherRevOps
-                        (PartialExpression Or expr finalExpr)
+                    PartialExpression And expr finalExpr
 
-                --finalize (otherRevOps ++ [ ( expr, Or ) ]) finalExpr
+                _ ->
+                    BinOp And (finalize otherRevOps expr) finalExpr
+
+        ( expr, Or ) :: otherRevOps ->
+            case otherRevOps of
+                [] ->
+                    finalize otherRevOps (PartialExpression Or expr finalExpr)
+
                 _ ->
                     BinOp Or (finalize otherRevOps expr) finalExpr
 
@@ -387,7 +374,7 @@ getParsedExpressionString =
 
 getParsedExpString : String
 getParsedExpString =
-    Debug.toString (parseExp "1 = 14 || 2 == 24 || 3 == 34")
+    Debug.toString (parseExp "1 = 14 && 2 == 24 && 3 == 34 || 4 == 44")
 
 
 
