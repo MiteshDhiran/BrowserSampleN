@@ -1,6 +1,8 @@
 module Page.RuleEditor exposing (DataTypeMetaInfo(..), Expression(..), Model, Msg, Operator(..), PropertyMetaInfo, ResourceMetaInfo, ResourceName(..), init, update, view)
 
 import Html exposing (Html)
+import Html.Attributes
+import Html.Events
 import Parser exposing (..)
 import Session exposing (Session)
 
@@ -68,14 +70,19 @@ type alias Model =
 
 
 type Msg
-    = AddRule
+    = AddRule Operator Expression Expression
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        AddRule ->
-            ( model, Cmd.none )
+        AddRule operator lhs rhs ->
+            ( { model | ruleExpression = addBinOp operator lhs rhs And Equal (Integer 7) (Integer 7) }, Cmd.none )
+
+
+addBinOp : Operator -> Expression -> Expression -> Operator -> Operator -> Expression -> Expression -> Expression
+addBinOp currentOperator currentLHSExpression currentRHSExpression newJoinOperator newOperator newLHSExpression newRHSExpression =
+    BinOp newJoinOperator (BinOp currentOperator currentLHSExpression currentRHSExpression) (BinOp newOperator newLHSExpression newRHSExpression)
 
 
 
@@ -412,12 +419,14 @@ getHTML acc indent expression =
         BinOp operator lhs rhs ->
             case operator of
                 And ->
-                    getHTML acc indent lhs
+                    (getHTML acc indent lhs
                         ++ [ Html.div []
                                 ([ Html.text (getSpaces (indent + 1) ++ Debug.toString operator) ]
                                     ++ getHTML acc (indent + 1) rhs
                                 )
                            ]
+                    )
+                        ++ [ Html.button [ Html.Events.onClick (AddRule operator lhs rhs) ] [ Html.text " Click me to append rule" ] ]
 
                 Or ->
                     getHTML acc indent lhs
