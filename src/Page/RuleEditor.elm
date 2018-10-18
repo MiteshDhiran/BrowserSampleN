@@ -89,13 +89,16 @@ init : Session -> ( Model, Cmd Msg )
 init session =
     ( { session = session
       , ruleExpression =
-            BinOp And
-                (SubExpression (BinOp And (BinOp Equal (String "A") (String "B")) (BinOp Equal (String "E") (String "F"))))
-                (SubExpression
-                    (BinOp And (BinOp Equal (String "1") (String "11")) (BinOp Equal (String "2") (String "22")))
-                )
+            case parseExp "1 = 14 && 2 == 24 && 3 == 34 || 4 == 44" of
+                Ok value ->
+                    value
 
-      {- , binaryTree = Node (Equal (IntegerE 1) (IntegerE 1)) -}
+                _ ->
+                    BinOp And
+                        (SubExpression (BinOp And (BinOp Equal (String "A") (String "B")) (BinOp Equal (String "E") (String "F"))))
+                        (SubExpression
+                            (BinOp And (BinOp Equal (String "1") (String "11")) (BinOp Equal (String "2") (String "22")))
+                        )
       }
     , Cmd.none
     )
@@ -386,7 +389,7 @@ getParsedExpString =
 view : Model -> { title : String, content : Html Msg }
 view model =
     { title = "Rule Editor"
-    , content = Html.div [] (getHTML [] 0 model.ruleExpression ++ [ Html.div [] [ Html.text getParsedExpString ] ])
+    , content = Html.div [] (getHTML [] 1 model.ruleExpression ++ [ Html.div [] [ Html.text getParsedExpString ] ])
     }
 
 
@@ -407,23 +410,25 @@ getHTML acc indent expression =
             ]
 
         BinOp operator lhs rhs ->
-            --:: Html.text ("Operator" ++ Debug.toString operator)
             case operator of
                 And ->
-                    let
-                        newIndent =
-                            indent + 1
-                    in
                     getHTML acc indent lhs
                         ++ [ Html.div []
-                                ([ Html.text (getSpaces newIndent ++ Debug.toString operator) ]
-                                    ++ getHTML acc newIndent rhs
+                                ([ Html.text (getSpaces (indent + 1) ++ Debug.toString operator) ]
+                                    ++ getHTML acc (indent + 1) rhs
                                 )
                            ]
 
-                {- [ Html.div [] (getHTML acc lhs ++ [ Html.text ("Operator New Line" ++ Debug.toString operator) ] ++ getHTML acc rhs) ] -}
+                Or ->
+                    getHTML acc indent lhs
+                        ++ [ Html.div []
+                                ([ Html.text (getSpaces (indent + 1) ++ Debug.toString operator) ]
+                                    ++ getHTML acc (indent + 1) rhs
+                                )
+                           ]
+
                 _ ->
-                    getHTML acc indent lhs ++ [ Html.text ("Operator" ++ Debug.toString operator) ] ++ getHTML acc indent rhs
+                    getHTML acc indent lhs ++ [ Html.text (Debug.toString operator) ] ++ getHTML acc indent rhs
 
         PartialExpression operator lhs rhs ->
             Html.text "Partial Expression" :: acc
@@ -435,7 +440,7 @@ getHTML acc indent expression =
             Html.text ("String Constant" ++ str) :: acc
 
         Integer intVal ->
-            Html.text ("Integer Constant" ++ "intVal") :: acc
+            Html.text (Debug.toString intVal) :: acc
 
         Float ft ->
             Html.text ("Float Constant" ++ "ft") :: acc
