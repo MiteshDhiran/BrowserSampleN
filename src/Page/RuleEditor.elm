@@ -5,6 +5,7 @@ import Html.Attributes
 import Html.Events
 import Parser exposing (..)
 import Session exposing (Session)
+import Tree
 
 
 type Operator
@@ -14,6 +15,14 @@ type Operator
     | NotEqualTo
     | And
     | Or
+
+
+type LeafExpression
+    = NCharacter Char
+    | NString String
+    | NInteger Int
+    | NFloat Float
+    | NProperty PropertyMetaInfo
 
 
 type Expression
@@ -27,6 +36,67 @@ type Expression
     | PartialExpression Operator Expression Expression
 
 
+type NodeType
+    = OperatorNode Operator
+    | ExpressionNode Expression
+    | RootNode
+
+
+type alias Node =
+    { nodeVal : NodeType, locationVal : Int }
+
+
+makeSingleton : Tree.Tree Node
+makeSingleton =
+    Tree.singleton { nodeVal = ExpressionNode (Integer 1), locationVal = 0 }
+
+
+makeTreeWithSingleNode : Tree.Tree Node -> Tree.Tree Node
+makeTreeWithSingleNode t =
+    Tree.appendChild makeSingleton t
+
+
+makeTree : Expression -> Tree.Tree Node -> Tree.Tree Node
+makeTree exp t =
+    case exp of
+        Character c ->
+            Tree.appendChild (Tree.singleton { nodeVal = ExpressionNode exp, locationVal = 0 }) t
+
+        Float f ->
+            Tree.appendChild (Tree.singleton { nodeVal = ExpressionNode exp, locationVal = 0 }) t
+
+        Integer i ->
+            Tree.appendChild (Tree.singleton { nodeVal = ExpressionNode exp, locationVal = 0 }) t
+
+        Property pi ->
+            Tree.appendChild (Tree.singleton { nodeVal = ExpressionNode exp, locationVal = 0 }) t
+
+        BinOp op lhs rhs ->
+            let
+                operatorTreeNodeOf =
+                    Tree.tree { nodeVal = OperatorNode op, locationVal = 0 } (Tree.children (makeTree lhs (Tree.singleton { nodeVal = RootNode, locationVal = -1 })) ++ Tree.children (makeTree rhs (Tree.singleton { nodeVal = RootNode, locationVal = -1 })))
+            in
+            Tree.appendChild operatorTreeNodeOf t
+
+        _ ->
+            t
+
+
+
+{-
+   type Expression
+       = Character Char
+       | String String
+       | Integer Int
+       | Float Float
+       | Property PropertyMetaInfo
+       | BinOp Operator Expression Expression
+       | SubExpression Expression
+       | PartialExpression Operator Expression Expression
+-}
+{- type alias Node = Expression -}
+
+
 type Exp
     = CharacterE Char
     | StringE String
@@ -34,9 +104,12 @@ type Exp
     | FloatE Float
 
 
-type BinaryTree exp
-    = Empty
-    | Node Operator (BinaryTree Exp) (BinaryTree Exp)
+
+{-
+   type BinaryTree exp
+       = Empty
+       | Node Operator (BinaryTree Exp) (BinaryTree Exp)
+-}
 
 
 type alias PropertyMetaInfo =
@@ -64,6 +137,7 @@ type alias ResourceMetaInfo =
 type alias Model =
     { session : Session
     , ruleExpression : Expression
+    , expressionTree : Tree.Tree Node
 
     {- , binaryTree : BinaryTree Expression -}
     }
@@ -92,6 +166,95 @@ addBinOp currentOperator currentLHSExpression currentRHSExpression newJoinOperat
 -}
 
 
+convertNodeToString : NodeType -> String
+convertNodeToString nodeType =
+    case nodeType of
+        ExpressionNode expression ->
+            convertExpressionToString expression
+
+        OperatorNode operator ->
+            Debug.toString operator
+
+        RootNode ->
+            "root"
+
+
+convertExpressionToString : Expression -> String
+convertExpressionToString expression =
+    case expression of
+        Integer int ->
+            Debug.toString int
+
+        Float ft ->
+            Debug.toString ft
+
+        Character chr ->
+            Debug.toString chr
+
+        Property propMetainfo ->
+            Debug.toString propMetainfo
+
+        _ ->
+            "REST"
+
+
+labelToHtml : Node -> Html Msg
+labelToHtml { nodeVal, locationVal } =
+    Html.text (convertNodeToString nodeVal)
+
+
+toListItems : Html Msg -> List (Html Msg) -> Html Msg
+toListItems label children =
+    case children of
+        [] ->
+            Html.li [] [ label ]
+
+        _ ->
+            Html.li []
+                [ label
+                , Html.ul [] children
+                ]
+
+
+getDefaultView : Html Msg
+getDefaultView =
+    Html.text (Debug.toString getDefaultTree)
+
+
+
+{-
+   getDefaultView : Html Msg
+   getDefaultView =
+       getDefaultTree
+           |> Tree.restructure labelToHtml toListItems
+           |> (\root -> Html.ul [] [ root ])
+-}
+{-
+   getDefaultView : Html Msg
+   getDefaultView =
+       Tree.restructure labelToHtml toListItems getDefaultTree
+-}
+
+
+getDefaultExpression : Expression
+getDefaultExpression =
+    case parseExp "1 = 14 && 2 == 24 && 3 == 34 || 4 == 44" of
+        Ok value ->
+            value
+
+        _ ->
+            BinOp And
+                (SubExpression (BinOp And (BinOp Equal (String "A") (String "B")) (BinOp Equal (String "E") (String "F"))))
+                (SubExpression
+                    (BinOp And (BinOp Equal (String "1") (String "11")) (BinOp Equal (String "2") (String "22")))
+                )
+
+
+getDefaultTree : Tree.Tree Node
+getDefaultTree =
+    makeTree getDefaultExpression (Tree.singleton { nodeVal = RootNode, locationVal = 0 })
+
+
 init : Session -> ( Model, Cmd Msg )
 init session =
     ( { session = session
@@ -106,6 +269,7 @@ init session =
                         (SubExpression
                             (BinOp And (BinOp Equal (String "1") (String "11")) (BinOp Equal (String "2") (String "22")))
                         )
+      , expressionTree = getDefaultTree
       }
     , Cmd.none
     )
@@ -391,12 +555,14 @@ getParsedExpString =
 {- Debug.toString (parseExp "1 = 14 || 2 == 24 && 3 = 34 && 4 = 44 && 5 = 55") -}
 {- Debug.toString (parseExp "1 = 1 && 2 = 2 && 3 = 3") -}
 {- Debug.toString (parseExp "propertyName($Mitesh$[$Parent$]) && 1 = 1 && 2 = 2 && 3 = 3") -}
+{- https://package.elm-lang.org/packages/peterszerzo/elm-arborist/latest/ -}
+{- https://package.elm-lang.org/packages/zwilias/elm-rosetree/latest/ -}
 
 
 view : Model -> { title : String, content : Html Msg }
 view model =
     { title = "Rule Editor"
-    , content = Html.div [] (getHTML [] 1 model.ruleExpression ++ [ Html.div [] [ Html.text getParsedExpString ] ])
+    , content = Html.div [] (getHTML [] 1 model.ruleExpression ++ [ Html.div [] [ Html.text getParsedExpString ] ] ++ [ Html.div [] [ getDefaultView ] ])
     }
 
 
