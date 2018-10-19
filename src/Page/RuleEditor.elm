@@ -183,13 +183,13 @@ convertExpressionToString : Expression -> String
 convertExpressionToString expression =
     case expression of
         Integer int ->
-            Debug.toString int
+            String.fromInt int
 
         Float ft ->
-            Debug.toString ft
+            String.fromFloat ft
 
         Character chr ->
-            Debug.toString chr
+            String.fromChar chr
 
         Property propMetainfo ->
             Debug.toString propMetainfo
@@ -216,19 +216,22 @@ toListItems label children =
                 ]
 
 
-getDefaultView : Html Msg
-getDefaultView =
-    Html.text (Debug.toString getDefaultTree)
-
-
 
 {-
    getDefaultView : Html Msg
    getDefaultView =
-       getDefaultTree
-           |> Tree.restructure labelToHtml toListItems
-           |> (\root -> Html.ul [] [ root ])
+       Html.text (Debug.toString getDefaultTree)
 -}
+
+
+getDefaultView : Html Msg
+getDefaultView =
+    getDefaultTree
+        |> Tree.restructure labelToHtml toListItems
+        |> (\root -> Html.ul [] [ root ])
+
+
+
 {-
    getDefaultView : Html Msg
    getDefaultView =
