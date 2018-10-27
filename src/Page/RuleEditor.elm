@@ -163,6 +163,7 @@ type alias Model =
 type Msg
     = AddRule Operator Expression Expression
     | NodeClick Node
+    | UpdateNodeValue Node String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -174,6 +175,9 @@ update msg model =
         NodeClick node ->
             --Debug.log (Debug.toString node.locationVal)
             ( { model | editableExpressionTree = getDefaultTree getDefaultExpression (Just node) }, Cmd.none )
+
+        UpdateNodeValue node value ->
+            ( model, Cmd.none )
 
 
 addBinOp : Operator -> Expression -> Expression -> Operator -> Operator -> Expression -> Expression -> Expression
@@ -241,7 +245,11 @@ labelToHtml { nodeVal, locationVal, isEditable } =
             Html.div
                 [ Html.Events.onClick (NodeClick node)
                 ]
-                [ Html.input [ Html.Attributes.value (convertNodeToString nodeVal) ] []
+                [ Html.input
+                    [ Html.Attributes.value (convertNodeToString nodeVal)
+                    , Html.Events.onInput <| UpdateNodeValue node
+                    ]
+                    []
                 ]
 
 
@@ -278,14 +286,6 @@ getViewOfTree expressionTree =
     expressionTree
         |> Tree.restructure labelToHtml toListItems
         |> (\root -> Html.ul [] [ root ])
-
-
-
-{-
-   getDefaultView : Html Msg
-   getDefaultView =
-       Tree.restructure labelToHtml toListItems getDefaultTree
--}
 
 
 getDefaultExpression : Expression
