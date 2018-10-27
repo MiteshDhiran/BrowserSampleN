@@ -43,12 +43,12 @@ type NodeType
 
 
 type alias Node =
-    { nodeVal : NodeType, locationVal : Int }
+    { nodeVal : NodeType, locationVal : Int, isEditable : Bool }
 
 
 makeSingleton : Tree.Tree Node
 makeSingleton =
-    Tree.singleton { nodeVal = ExpressionNode (Integer 1), locationVal = 0 }
+    Tree.singleton { nodeVal = ExpressionNode (Integer 1), locationVal = 0, isEditable = False }
 
 
 makeTreeWithSingleNode : Tree.Tree Node -> Tree.Tree Node
@@ -56,25 +56,40 @@ makeTreeWithSingleNode t =
     Tree.appendChild makeSingleton t
 
 
+makeTreeWithIndex : Expression -> Maybe Node -> Tree.Tree Node
+makeTreeWithIndex expression maybeEditableNode =
+    let
+        editableIndex =
+            case maybeEditableNode of
+                Just editableNode ->
+                    editableNode.locationVal
+
+                Nothing ->
+                    -1
+    in
+    makeTree expression (Tree.singleton { nodeVal = RootNode, locationVal = -1, isEditable = False })
+        |> Tree.indexedMap (\idx val -> { val | locationVal = idx, isEditable = editableIndex == idx })
+
+
 makeTree : Expression -> Tree.Tree Node -> Tree.Tree Node
 makeTree exp t =
     case exp of
         Character c ->
-            Tree.appendChild (Tree.singleton { nodeVal = ExpressionNode exp, locationVal = 0 }) t
+            Tree.appendChild (Tree.singleton { nodeVal = ExpressionNode exp, locationVal = 0, isEditable = False }) t
 
         Float f ->
-            Tree.appendChild (Tree.singleton { nodeVal = ExpressionNode exp, locationVal = 0 }) t
+            Tree.appendChild (Tree.singleton { nodeVal = ExpressionNode exp, locationVal = 0, isEditable = False }) t
 
         Integer i ->
-            Tree.appendChild (Tree.singleton { nodeVal = ExpressionNode exp, locationVal = 0 }) t
+            Tree.appendChild (Tree.singleton { nodeVal = ExpressionNode exp, locationVal = 0, isEditable = False }) t
 
         Property pi ->
-            Tree.appendChild (Tree.singleton { nodeVal = ExpressionNode exp, locationVal = 0 }) t
+            Tree.appendChild (Tree.singleton { nodeVal = ExpressionNode exp, locationVal = 0, isEditable = False }) t
 
         BinOp op lhs rhs ->
             let
                 operatorTreeNodeOf =
-                    Tree.tree { nodeVal = OperatorNode op, locationVal = 0 } (Tree.children (makeTree lhs (Tree.singleton { nodeVal = RootNode, locationVal = -1 })) ++ Tree.children (makeTree rhs (Tree.singleton { nodeVal = RootNode, locationVal = -1 })))
+                    Tree.tree { nodeVal = OperatorNode op, locationVal = 0, isEditable = False } (Tree.children (makeTree lhs (Tree.singleton { nodeVal = RootNode, locationVal = -1, isEditable = False })) ++ Tree.children (makeTree rhs (Tree.singleton { nodeVal = RootNode, locationVal = -1, isEditable = False })))
             in
             Tree.appendChild operatorTreeNodeOf t
 
@@ -138,6 +153,8 @@ type alias Model =
     { session : Session
     , ruleExpression : Expression
     , expressionTree : Tree.Tree Node
+    , editableExpressionTree : Tree.Tree Node
+    , editableNode : Maybe Node
 
     {- , binaryTree : BinaryTree Expression -}
     }
@@ -145,6 +162,7 @@ type alias Model =
 
 type Msg
     = AddRule Operator Expression Expression
+    | NodeClick Node
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -152,6 +170,10 @@ update msg model =
     case msg of
         AddRule operator lhs rhs ->
             ( { model | ruleExpression = addBinOp operator lhs rhs And Equal (Integer 7) (Integer 7) }, Cmd.none )
+
+        NodeClick node ->
+            --Debug.log (Debug.toString node.locationVal)
+            ( { model | editableExpressionTree = getDefaultTree getDefaultExpression (Just node) }, Cmd.none )
 
 
 addBinOp : Operator -> Expression -> Expression -> Operator -> Operator -> Expression -> Expression -> Expression
@@ -199,8 +221,28 @@ convertExpressionToString expression =
 
 
 labelToHtml : Node -> Html Msg
-labelToHtml { nodeVal, locationVal } =
-    Html.text (convertNodeToString nodeVal)
+labelToHtml { nodeVal, locationVal, isEditable } =
+    let
+        node =
+            { nodeVal = nodeVal
+            , locationVal = locationVal
+            , isEditable = isEditable
+            }
+    in
+    case isEditable of
+        False ->
+            Html.div
+                [ Html.Events.onClick (NodeClick node)
+                ]
+                [ Html.text ("[" ++ String.fromInt locationVal ++ "]" ++ convertNodeToString nodeVal)
+                ]
+
+        True ->
+            Html.div
+                [ Html.Events.onClick (NodeClick node)
+                ]
+                [ Html.input [ Html.Attributes.value (convertNodeToString nodeVal) ] []
+                ]
 
 
 toListItems : Html Msg -> List (Html Msg) -> Html Msg
@@ -224,9 +266,16 @@ toListItems label children =
 -}
 
 
-getDefaultView : Html Msg
-getDefaultView =
-    getDefaultTree
+getDefaultTreeView : Expression -> Maybe Node -> Html Msg
+getDefaultTreeView expression maybeNode =
+    getDefaultTree expression maybeNode
+        |> Tree.restructure labelToHtml toListItems
+        |> (\root -> Html.ul [] [ root ])
+
+
+getViewOfTree : Tree.Tree Node -> Html Msg
+getViewOfTree expressionTree =
+    expressionTree
         |> Tree.restructure labelToHtml toListItems
         |> (\root -> Html.ul [] [ root ])
 
@@ -253,9 +302,9 @@ getDefaultExpression =
                 )
 
 
-getDefaultTree : Tree.Tree Node
-getDefaultTree =
-    makeTree getDefaultExpression (Tree.singleton { nodeVal = RootNode, locationVal = 0 })
+getDefaultTree : Expression -> Maybe Node -> Tree.Tree Node
+getDefaultTree expression maybeNode =
+    makeTreeWithIndex expression maybeNode
 
 
 init : Session -> ( Model, Cmd Msg )
@@ -272,7 +321,9 @@ init session =
                         (SubExpression
                             (BinOp And (BinOp Equal (String "1") (String "11")) (BinOp Equal (String "2") (String "22")))
                         )
-      , expressionTree = getDefaultTree
+      , expressionTree = getDefaultTree getDefaultExpression Nothing
+      , editableExpressionTree = getDefaultTree getDefaultExpression Nothing
+      , editableNode = Nothing
       }
     , Cmd.none
     )
@@ -565,7 +616,7 @@ getParsedExpString =
 view : Model -> { title : String, content : Html Msg }
 view model =
     { title = "Rule Editor"
-    , content = Html.div [] (getHTML [] 1 model.ruleExpression ++ [ Html.div [] [ Html.text getParsedExpString ] ] ++ [ Html.div [] [ getDefaultView ] ])
+    , content = Html.div [] (getHTML [] 1 model.ruleExpression ++ [ Html.div [] [ Html.text getParsedExpString ] ] ++ [ Html.div [] [ getViewOfTree model.editableExpressionTree ] ])
     }
 
 
