@@ -152,7 +152,6 @@ type alias ResourceMetaInfo =
 type alias Model =
     { session : Session
     , ruleExpression : Expression
-    , expressionTree : Tree.Tree Node
     , editableExpressionTree : Tree.Tree Node
     , editableNode : Maybe Node
 
@@ -173,11 +172,51 @@ update msg model =
             ( { model | ruleExpression = addBinOp operator lhs rhs And Equal (Integer 7) (Integer 7) }, Cmd.none )
 
         NodeClick node ->
-            --Debug.log (Debug.toString node.locationVal)
-            ( { model | editableExpressionTree = getDefaultTree getDefaultExpression (Just node) }, Cmd.none )
+            ( { model | editableExpressionTree = markNodeEditable model.editableExpressionTree (Just node) }, Cmd.none )
 
         UpdateNodeValue node value ->
-            ( model, Cmd.none )
+            let
+                editableNodeIndex =
+                    node.locationVal
+
+                editedExpreesionValue =
+                    case node.nodeVal of
+                        OperatorNode op ->
+                            OperatorNode op
+
+                        ExpressionNode exp ->
+                            case exp of
+                                Integer _ ->
+                                    ExpressionNode (Integer (Maybe.withDefault 0 (String.toInt value)))
+
+                                String _ ->
+                                    ExpressionNode (String value)
+
+                                Float _ ->
+                                    ExpressionNode (Float (Maybe.withDefault 0 (String.toFloat value)))
+
+                                _ ->
+                                    ExpressionNode exp
+
+                        {- ExpressionNode (Integer (Maybe.withDefault 0 (String.toInt value))) -}
+                        RootNode ->
+                            node.nodeVal
+
+                newNode =
+                    { nodeVal = editedExpreesionValue, locationVal = editableNodeIndex, isEditable = True }
+
+                newTree =
+                    Tree.indexedMap
+                        (\idx val ->
+                            if idx == editableNodeIndex then
+                                newNode
+
+                            else
+                                val
+                        )
+                        model.editableExpressionTree
+            in
+            ( { model | editableExpressionTree = newTree }, Cmd.none )
 
 
 addBinOp : Operator -> Expression -> Expression -> Operator -> Operator -> Expression -> Expression -> Expression
@@ -307,6 +346,16 @@ getDefaultTree expression maybeNode =
     makeTreeWithIndex expression maybeNode
 
 
+markNodeEditable : Tree.Tree Node -> Maybe Node -> Tree.Tree Node
+markNodeEditable editableExpressionTree maybeEditableNode =
+    case maybeEditableNode of
+        Just node ->
+            Tree.indexedMap (\idx val -> { val | isEditable = node.locationVal == idx }) editableExpressionTree
+
+        Nothing ->
+            editableExpressionTree
+
+
 init : Session -> ( Model, Cmd Msg )
 init session =
     ( { session = session
@@ -321,7 +370,6 @@ init session =
                         (SubExpression
                             (BinOp And (BinOp Equal (String "1") (String "11")) (BinOp Equal (String "2") (String "22")))
                         )
-      , expressionTree = getDefaultTree getDefaultExpression Nothing
       , editableExpressionTree = getDefaultTree getDefaultExpression Nothing
       , editableNode = Nothing
       }
