@@ -136,9 +136,9 @@ toListItems2 label children =
             Html.li [] [ label ]
 
         _ ->
-            Html.span []
+            Html.li []
                 [ label
-                , Html.span [] children
+                , Html.ul [] children
                 ]
 
 
@@ -175,6 +175,16 @@ convertToFlatTree nodeTree =
     makeTreeWithFlatExpression nodeTree (Tree.singleton { nodeHTMLList = [] })
 
 
+dummyNode : Tree.Tree Node
+dummyNode =
+    Tree.singleton { nodeVal = RootNode, locationVal = -1, isEditable = False, operatorDepth = -1 }
+
+
+dummyNodeNL : Tree.Tree NodeHTMLList
+dummyNodeNL =
+    Tree.singleton { nodeHTMLList = [] }
+
+
 makeTreeWithFlatExpression : Tree.Tree Node -> Tree.Tree NodeHTMLList -> Tree.Tree NodeHTMLList
 makeTreeWithFlatExpression currentTreeNode t =
     let
@@ -185,27 +195,83 @@ makeTreeWithFlatExpression currentTreeNode t =
         OperatorNode op ->
             case op of
                 And ->
-                    List.foldl
-                        (\c acc -> makeTreeWithFlatExpression c acc)
-                        (Tree.appendChild (Tree.singleton (makeSameNodeList currentTreeNode)) t)
-                        (Tree.children currentTreeNode)
+                    let
+                        otherTree =
+                            Tree.tree (makeSameNodeList currentTreeNode)
+                                (List.concatMap
+                                    (\n -> Tree.children (makeTreeWithFlatExpression n dummyNodeNL))
+                                    (Tree.children currentTreeNode)
+                                )
+                    in
+                    Tree.appendChild otherTree t
 
+                {- let
+                       otherTree =
+                           Tree.tree (makeSameNodeList currentTreeNode)
+                               (List.map
+                                   (\n -> makeTreeWithFlatExpression n (Tree.singleton (makeSameNodeList currentTreeNode)))
+                                   (Tree.children currentTreeNode)
+                               )
+                   in
+                   Tree.appendChild otherTree t
+                -}
+                {- List.foldl
+                   (\c acc -> makeTreeWithFlatExpression c acc)
+                   (Tree.appendChild (Tree.singleton (makeSameNodeList currentTreeNode)) t)
+                   (Tree.children currentTreeNode)
+                -}
                 Or ->
-                    List.foldl
-                        (\c acc -> makeTreeWithFlatExpression c acc)
-                        (Tree.appendChild (Tree.singleton (makeSameNodeList currentTreeNode)) t)
-                        (Tree.children currentTreeNode)
+                    let
+                        otherTree =
+                            Tree.tree (makeSameNodeList currentTreeNode)
+                                (List.concatMap
+                                    (\n -> Tree.children (makeTreeWithFlatExpression n dummyNodeNL))
+                                    (Tree.children currentTreeNode)
+                                )
+                    in
+                    Tree.appendChild otherTree t
 
+                {- let
+                       appendableTree =
+                           Tree.singleton (makeSameNodeList currentTreeNode)
+
+                       --Tree.tree (Tree.singleton (makeSameNodeList currentTreeNode))
+                       --(List.concatMap (\n -> Tree.children (makeTreeWithFlatExpression n dummyNodeNL)) (Tree.children currentTreeNode))
+                   in
+                   Tree.appendChild appendableTree t
+                -}
+                {- List.foldl
+                   (\c acc -> makeTreeWithFlatExpression c acc)
+                   (Tree.appendChild (Tree.singleton (makeSameNodeList currentTreeNode)) t)
+                   (Tree.children currentTreeNode)
+                -}
                 _ ->
                     Tree.appendChild
                         (Tree.singleton (makeFlatNodeList currentTreeNode))
                         t
 
         _ ->
-            List.foldl
-                (\c acc -> makeTreeWithFlatExpression c acc)
-                (Tree.appendChild (Tree.singleton (makeSameNodeList currentTreeNode)) t)
-                (Tree.children currentTreeNode)
+            let
+                otherTree =
+                    Tree.tree (makeSameNodeList currentTreeNode)
+                        (List.concatMap
+                            (\n -> Tree.children (makeTreeWithFlatExpression n dummyNodeNL))
+                            (Tree.children currentTreeNode)
+                        )
+            in
+            Tree.appendChild otherTree t
+
+
+
+{- let
+       appendableTree =
+           Tree.singleton (makeSameNodeList currentTreeNode)
+
+       --Tree.tree (Tree.singleton (makeSameNodeList currentTreeNode))
+       --(List.concatMap (\n -> Tree.children (makeTreeWithFlatExpression n dummyNodeNL)) (Tree.children currentTreeNode))
+   in
+   Tree.appendChild appendableTree t
+-}
 
 
 makeTree : Expression -> Tree.Tree Node -> Tree.Tree Node
