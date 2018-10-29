@@ -161,7 +161,12 @@ viewTreeWithFlatExpression t =
 
 getFlatTreeView : Tree.Tree Node -> Html Msg
 getFlatTreeView nodeTree =
-    convertToFlatTree nodeTree
+    let
+        flattTree =
+            convertToFlatTree nodeTree
+    in
+    Debug.log (Debug.toString flattTree)
+        flattTree
         |> viewTreeWithFlatExpression
 
 
@@ -179,19 +184,28 @@ makeTreeWithFlatExpression currentTreeNode t =
     case currentNodeLabel.nodeVal of
         OperatorNode op ->
             case op of
-                Equal ->
-                    Tree.appendChild (Tree.singleton (makeFlatNodeList currentTreeNode)) t
+                And ->
+                    List.foldl
+                        (\c acc -> makeTreeWithFlatExpression c acc)
+                        (Tree.appendChild (Tree.singleton (makeSameNodeList currentTreeNode)) t)
+                        (Tree.children currentTreeNode)
+
+                Or ->
+                    List.foldl
+                        (\c acc -> makeTreeWithFlatExpression c acc)
+                        (Tree.appendChild (Tree.singleton (makeSameNodeList currentTreeNode)) t)
+                        (Tree.children currentTreeNode)
 
                 _ ->
-                    List.foldl (\c f -> makeTreeWithFlatExpression c (Tree.appendChild (Tree.singleton (makeSameNodeList currentTreeNode)) f)) t (Tree.children currentTreeNode)
+                    Tree.appendChild
+                        (Tree.singleton (makeFlatNodeList currentTreeNode))
+                        t
 
         _ ->
-            List.foldl (\c acc -> makeTreeWithFlatExpression c (Tree.appendChild (Tree.singleton (makeSameNodeList currentTreeNode)) acc)) t (Tree.children currentTreeNode)
-
-
-
---List.map (\c -> makeTreeWithFlatExpression c  (Tree.appendChild (Tree.singleton makeSameNodeList currentTreeNode) t))  (Tree.children  currentTreeNode)
---{ nodeVal : NodeType, locationVal : Int, isEditable : Bool, operatorDepth : Int }
+            List.foldl
+                (\c acc -> makeTreeWithFlatExpression c acc)
+                (Tree.appendChild (Tree.singleton (makeSameNodeList currentTreeNode)) t)
+                (Tree.children currentTreeNode)
 
 
 makeTree : Expression -> Tree.Tree Node -> Tree.Tree Node
