@@ -165,6 +165,16 @@ getFlatTreeView nodeTree =
         flattTree =
             convertToFlatTree nodeTree
     in
+    flattTree
+        |> viewTreeWithFlatExpression
+
+
+getFlatTreeView2 : Tree.Tree Node -> Html Msg
+getFlatTreeView2 nodeTree =
+    let
+        flattTree =
+            moveJoiningOperator (convertToFlatTree nodeTree) dummyNodeNL
+    in
     Debug.log (Debug.toString flattTree)
         flattTree
         |> viewTreeWithFlatExpression
@@ -173,6 +183,11 @@ getFlatTreeView nodeTree =
 convertToFlatTree : Tree.Tree Node -> Tree.Tree NodeHTMLList
 convertToFlatTree nodeTree =
     makeTreeWithFlatExpression nodeTree (Tree.singleton { nodeHTMLList = [] })
+
+
+
+{- moveJoiningOperator (makeTreeWithFlatExpression nodeTree (Tree.singleton { nodeHTMLList = [] })) dummyNodeNL -}
+--|> moveJoiningOperator
 
 
 dummyNode : Tree.Tree Node
@@ -231,6 +246,84 @@ makeTreeWithFlatExpression currentTreeNode t =
                         )
             in
             Tree.appendChild otherTree t
+
+
+moveJoiningOperator : Tree.Tree NodeHTMLList -> Tree.Tree NodeHTMLList -> Tree.Tree NodeHTMLList
+moveJoiningOperator currentNodeList t =
+    let
+        currentNodeLabel =
+            Tree.label currentNodeList
+
+        nodeToMoveDown =
+            case List.head currentNodeLabel.nodeHTMLList of
+                Just (NodeHTML node hmsg) ->
+                    case node.nodeVal of
+                        OperatorNode And ->
+                            Just currentNodeLabel
+
+                        OperatorNode Or ->
+                            Just currentNodeLabel
+
+                        _ ->
+                            Nothing
+
+                _ ->
+                    Nothing
+
+        childrenOfAndOr =
+            case nodeToMoveDown of
+                Just _ ->
+                    Just (Tree.children currentNodeList)
+
+                _ ->
+                    Nothing
+
+        firstChildOfAndOr =
+            case childrenOfAndOr of
+                Just children ->
+                    List.head children
+
+                _ ->
+                    Nothing
+
+        restChildOfAndOr =
+            case childrenOfAndOr of
+                Just (h :: r) ->
+                    r
+
+                _ ->
+                    []
+
+        {- rearrangedTreeIfPreviousParent =
+           case maybePreviousParent of
+               Just previousParent ->
+                   Just Tree.tree (Tree.singleton (Tree.label currentNodeLabel)) ([ Tree.singleton previousParent ] ++ Tree.children currentNodeList)
+
+               _ ->
+                   Nothing
+        -}
+    in
+    case firstChildOfAndOr of
+        Just firstChild ->
+            Tree.appendChild
+                (Tree.tree (Tree.label firstChild)
+                    (Tree.singleton currentNodeLabel
+                        :: List.concatMap
+                            (\n -> Tree.children (moveJoiningOperator n dummyNodeNL))
+                            restChildOfAndOr
+                    )
+                )
+                t
+
+        _ ->
+            Tree.appendChild
+                (Tree.tree currentNodeLabel
+                    (List.concatMap
+                        (\n -> Tree.children (moveJoiningOperator n dummyNodeNL))
+                        (Tree.children currentNodeList)
+                    )
+                )
+                t
 
 
 makeTree : Expression -> Tree.Tree Node -> Tree.Tree Node
@@ -886,7 +979,7 @@ getParsedExpString =
 view : Model -> { title : String, content : Html Msg }
 view model =
     { title = "Rule Editor"
-    , content = Html.div [] (getHTML [] 1 model.ruleExpression ++ [ Html.div [] [ Html.text getParsedExpString ] ] ++ [ Html.div [] [ getViewOfTree model.editableExpressionTree ] ] ++ [ Html.div [] [ getRuleEditorView model.editableExpressionTree ] ] ++ [ Html.div [] [ getFlatTreeView model.editableExpressionTree ] ])
+    , content = Html.div [] (getHTML [] 1 model.ruleExpression ++ [ Html.div [] [ Html.text getParsedExpString ] ] ++ [ Html.div [] [ getViewOfTree model.editableExpressionTree ] ] ++ [ Html.div [] [ getRuleEditorView model.editableExpressionTree ] ] ++ [ Html.div [] [ getFlatTreeView model.editableExpressionTree ] ] ++ [ Html.div [] [ getFlatTreeView2 model.editableExpressionTree ] ])
     }
 
 
